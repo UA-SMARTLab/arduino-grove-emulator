@@ -1,0 +1,2974 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grove Kit Emulator</title>
+<style>
+:root{
+  --bg:#e9edf2; --panel:#ffffff; --ink:#1b2430; --muted:#5b6676; --line:#d3dae3;
+  --accent:#00878f; --accent-ink:#fff; --pcb:#1d5aa6; --pcb-dark:#123f78; --danger:#c62828;
+  --ed-bg:#1e2329; --ed-ink:#e6e6e6; --ed-gut:#7b8594; --ser-bg:#0f1418; --ser-ink:#b8f5c0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161b; --panel:#1b2128; --ink:#e4e8ee; --muted:#9aa5b3; --line:#2c3540;
+    --accent:#19a7b0; --pcb:#2a6bc0; --pcb-dark:#1a4a88;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e4e8ee; --muted:#9aa5b3; --line:#2c3540;
+  --accent:#19a7b0; --pcb:#2a6bc0; --pcb-dark:#1a4a88;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0 12px 0 0}
+button,select,input[type=text]{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+button{cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.stop{background:var(--danger);color:#fff;border-color:var(--danger)}
+#status{margin-left:auto;font-weight:600;color:var(--muted)}
+#status.run{color:var(--accent)}
+main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;padding:14px 16px}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0;padding:8px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.panel h2 .sp{flex:1}
+.panel h2 button,.panel h2 label{font-size:12px;text-transform:none;letter-spacing:0;padding:2px 8px}
+#edwrap{display:flex;height:52vh;min-height:300px;background:var(--ed-bg)}
+#gutter{padding:10px 6px 10px 10px;color:var(--ed-gut);text-align:right;font:13px/1.5 Consolas,Menlo,monospace;white-space:pre;overflow:hidden;user-select:none;min-width:42px}
+#code{flex:1;resize:none;border:0;outline:0;background:var(--ed-bg);color:var(--ed-ink);font:13px/1.5 Consolas,Menlo,monospace;padding:10px;white-space:pre;overflow:auto;tab-size:2}
+#serial{height:200px;margin:0;padding:8px 10px;overflow:auto;background:var(--ser-bg);color:var(--ser-ink);font:12.5px/1.4 Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-all}
+#plot{display:none;width:100%;height:200px;background:var(--ser-bg)}
+.serin{display:flex;gap:6px;padding:8px}
+.serin input{flex:1}
+.board{background:var(--pcb);color:#fff;padding:12px;border-radius:0}
+.board .top{display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:12px}
+.led{display:inline-block;width:11px;height:11px;border-radius:50%;background:#444;margin-right:4px;vertical-align:-1px}
+.led.on.g{background:#3f3;box-shadow:0 0 8px #3f3}
+.led.on.o{background:#fa0;box-shadow:0 0 8px #fa0}
+.led.on.y{background:#ff0;box-shadow:0 0 8px #ff0}
+.ports{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.port{background:var(--pcb-dark);border-radius:6px;padding:5px 6px;min-height:46px;font-size:11px}
+.port b{display:block;font-size:12px}
+.port.used{outline:2px solid #ffffff55}
+.port.conflict{outline:2px solid #ff5252}
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:12px}
+.card{border:1px solid var(--line);border-radius:9px;padding:9px;display:flex;flex-direction:column;gap:7px}
+.card[hidden]{display:none}
+.card.pop-in{animation:cardIn .35s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes cardIn{from{opacity:0;transform:translateY(-14px) scale(.92)}to{opacity:1;transform:none}}
+.card .unplug{padding:1px 6px;font-size:12px;line-height:1.2}
+.card .nm .ic{margin-right:4px}
+.tray-wrap{padding:10px 12px 0}
+.tray-hd{font-weight:700;font-size:13px;margin-bottom:6px}
+.tray-hd .small{font-weight:400;margin-left:6px}
+.tray{display:flex;flex-wrap:wrap;gap:6px;min-height:34px;padding:8px;border:2px dashed var(--line);border-radius:10px;background:var(--bg)}
+.tray:empty::after{content:"All parts are plugged in.";color:var(--muted);font-size:12px;align-self:center}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px 4px 6px;border-radius:999px;background:var(--panel);border:1px solid var(--line);
+  font-size:12.5px;cursor:grab;user-select:none;transition:transform .12s,box-shadow .12s;animation:chipIn .3s ease-out}
+.chip:hover{transform:translateY(-2px);box-shadow:0 4px 10px #0002;border-color:var(--accent)}
+.chip .ic{font-size:17px}
+.chip .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.chip.dragging{opacity:.4}
+@keyframes chipIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+.mods-empty{margin:12px;padding:18px;text-align:center;color:var(--muted);border-radius:10px;background:var(--bg)}
+.mods-empty[hidden]{display:none}
+.port.can-drop{outline:2px dashed #fff;outline-offset:-2px;background:#2f7ad6}
+.port.drop-over{background:#3fa34d;outline:2px solid #fff}
+.card .hd{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}
+.card .nm{font-weight:600}
+.card .sub{font-size:11px;color:var(--muted)}
+.card select{padding:2px 4px;font-size:12px}
+select.cs-hidden{display:none}
+#exSel + .cs-btn{min-width:240px}
+.cs-btn{text-align:left;display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.cs-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-btn::after{content:"▾";margin-left:auto;padding-left:6px;color:var(--muted)}
+.card .cs-btn{padding:2px 6px;font-size:12px}
+.cs-pop{position:fixed;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px #0004;max-height:65vh;overflow:auto;padding:4px;min-width:180px}
+.cs-pop .g{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:8px 8px 3px}
+.cs-pop button{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:5px 10px;background:none}
+.cs-pop button:hover,.cs-pop button:focus{background:var(--bg);outline:none}
+.cs-pop button.sel{font-weight:700;color:var(--accent)}
+.ro{font:12px Consolas,Menlo,monospace;color:var(--muted)}
+.warn{font-size:11px;color:var(--danger)}
+.row{display:flex;gap:8px;align-items:center}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.push{width:64px;height:64px;border-radius:50%;background:#333;color:#888;font-size:26px;border:6px solid #8a6d4a;align-self:center;touch-action:none}
+.push.dn{background:#111;transform:scale(.94)}
+.touchpad{height:64px;border-radius:12px;border:2px dashed var(--pcb);display:grid;place-items:center;color:var(--muted);cursor:pointer;user-select:none;touch-action:none}
+.touchpad.dn{background:var(--pcb);color:#fff}
+.knob{width:54px;height:54px;border-radius:50%;background:#222;position:relative;flex:none}
+.knob i{position:absolute;left:25px;top:4px;width:4px;height:18px;background:#fff;border-radius:2px;transform-origin:2px 23px}
+.strip{display:flex;flex-wrap:wrap;gap:5px;background:#15191d;padding:8px;border-radius:6px;border:3px solid var(--pcb-dark)}
+.px{width:15px;height:15px;border-radius:3px;background:#222;border:1px solid #444}
+.lcd{background:#2b2f2b;padding:8px;border-radius:6px;border:6px solid #1d4f8f}
+.lcd .scr{display:grid;grid-template-columns:repeat(16,1fr);gap:2px;padding:6px;border-radius:3px}
+.lcd span{font:600 15px/1 Consolas,Menlo,monospace;height:20px;display:grid;place-items:center;background:#0000000d;color:#0b120b;border-radius:1px}
+.lcd span.cur{box-shadow:inset 0 -3px 0 #0b120b}
+.joy{width:130px;height:130px;border-radius:12px;background:#222;position:relative;align-self:center;touch-action:none;cursor:grab}
+.joy i{position:absolute;width:46px;height:46px;border-radius:50%;background:#444;border:3px solid #111;left:42px;top:42px;pointer-events:none}
+.spk{font-size:34px;transition:transform .05s}
+.spk.on{transform:scale(1.2);filter:drop-shadow(0 0 6px orange)}
+.small{font-size:12px;color:var(--muted)}
+.help{padding:0 12px 12px;font-size:12.5px;color:var(--muted)}
+.help code{background:var(--bg);padding:0 3px;border-radius:3px}
+.task{border-left:4px solid var(--accent);animation:taskIn .25s ease-out}
+@keyframes taskIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.task-title{padding:10px 12px 0;font-weight:700}
+.task-list{margin:6px 0 12px;padding:0 12px 0 34px;max-height:260px;overflow:auto;list-style:none;counter-reset:none}
+.task-list li{margin:6px 0;white-space:pre-wrap;line-height:1.45}
+.task-list li b{display:inline-block;min-width:22px;margin-left:-22px;color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧰 Grove Kit Emulator <span class="small">Arduino UNO R4</span></h1>
+  <button id="runBtn" class="primary" title="Ctrl+Enter">▶ Upload &amp; run</button>
+  <button id="stopBtn" class="stop">■ Stop</button>
+  <select id="exSel" style="min-width:240px"><option value="">📚 Examples…</option></select>
+  <button id="openBtn">📂 Open</button>
+  <button id="saveBtn">💾 Save</button>
+  <input type="file" id="fileIn" accept=".ino,.txt,.cpp,.c" hidden>
+  <label class="small"><input type="checkbox" id="mute"> mute</label>
+  <label class="small" title="Compile the sketch with a real C++ compiler (clang) and run the compiled program, like a real board. Untick to use the simpler, less exact simulator."><input type="checkbox" id="strict" checked> real C++ compiler</label>
+  <span id="status">stopped</span>
+</header>
+<main>
+  <section style="display:flex;flex-direction:column;gap:14px;min-width:0">
+    <div class="panel task" id="taskCard" hidden>
+      <h2>📝 Task <span class="sp"></span><button id="taskHide" title="Hide the task">✕</button></h2>
+      <div class="task-title" id="taskTitle"></div>
+      <ol class="task-list" id="taskList"></ol>
+    </div>
+    <div class="panel">
+      <h2>Sketch <span class="sp"></span><span class="small" id="fname">sketch.ino</span></h2>
+      <div id="edwrap"><div id="gutter">1</div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></div>
+    </div>
+    <div class="panel">
+      <h2>Serial monitor <span class="sp"></span>
+        <label><input type="checkbox" id="plotTgl"> plotter</label>
+        <label><input type="checkbox" id="autoScroll" checked> auto-scroll</label>
+        <button id="clrBtn">clear</button></h2>
+      <pre id="serial"></pre>
+      <canvas id="plot"></canvas>
+      <div class="serin"><input type="text" id="serInput" placeholder="Send text to the board (Enter)…"><button id="sendBtn">Send</button></div>
+    </div>
+    <div class="panel help">
+      <h2 style="margin:0 -12px 8px">How does it work?</h2>
+      Write your Arduino code just like in the Arduino IDE and click <b>Upload &amp; run</b>. For each module, choose which Grove shield port it is plugged into
+      (just like with a real cable). Controls: hold buttons down, drag sliders, drag the joystick.<br>
+      Supported libraries: <code>rgb_lcd.h</code>, <code>Servo.h</code>, <code>Adafruit_NeoPixel.h</code>, <code>AHT20.h</code>, <code>ICM20600.h</code> + <code>AK09918.h</code>, <code>DHT.h</code>, <code>LSM6DS3.h</code>, <code>LIS3DHTR.h</code>, <code>Wire.h</code>.<br>
+      Your sketch is compiled by a real C++ compiler (clang) and the compiled program runs here, like on a real board: code with errors is not uploaded,
+      and all of C++ works (pointers, <code>struct</code>/<code>class</code>, references, templates). The compiler downloads once (about 23&nbsp;MB).<br>
+      Without internet, or in a browser that cannot run compiled programs (it needs a recent Chrome or Edge), a simpler simulator runs your code instead;
+      it does not support all of C++.
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:14px;min-width:0">
+    <div class="panel">
+      <div class="board">
+        <div class="top"><b>Arduino UNO R4 + Grove Base Shield</b>
+          <span><span class="led g on"></span>ON</span><span><span class="led o" id="ledL"></span>L (13)</span><span><span class="led y" id="ledTX"></span>TX</span>
+          <button id="unplugBtn" style="margin-left:auto;padding:2px 8px;font-size:12px;color:var(--ink)" title="Unplug every module from the shield">⏏ Disconnect all</button>
+          <button id="resetBtn" style="padding:2px 8px;font-size:12px;color:var(--ink)">⟲ RESET</button></div>
+        <div class="ports" id="ports"></div>
+      </div>
+      <div class="tray-wrap">
+        <div class="tray-hd">🧰 Parts tray <span class="small">click a part to plug it in, or drag it onto a port of the shield</span></div>
+        <div class="tray" id="tray"></div>
+      </div>
+      <div class="mods-empty" id="modsEmpty">Nothing is plugged in yet. Take a part from the tray above.</div>
+      <div class="mods" id="mods"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+//#T-START
+const EXAMPLES = [
+{name:'Blinking LED (Blink)', ports:{}, code:
+`// Blink the built-in LED (L) on the board
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println("LED on");
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println("LED off");
+  delay(500);
+}
+`},
+{name:'Button + buzzer', ports:{button:'D2', buzzer:'D4'}, code:
+`// Button on port D2, buzzer on port D4
+const int button = 2;
+const int buzzer = 4;
+
+void setup() {
+  pinMode(button, INPUT);
+  pinMode(buzzer, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int state = digitalRead(button);
+  if (state == HIGH) {
+    tone(buzzer, 440);
+  } else {
+    noTone(buzzer);
+  }
+  Serial.println(state);
+  delay(50);
+}
+`},
+{name:'Potentiometer → servo', ports:{rotary:'A0', servo:'D5'}, code:
+`// Rotary potentiometer on A0, servo on D5
+#include <Servo.h>
+
+Servo motor;
+
+void setup() {
+  motor.attach(5);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int value = analogRead(A0);
+  int angle = map(value, 0, 1023, 0, 180);
+  motor.write(angle);
+  Serial.print("Angle: ");
+  Serial.println(angle);
+  delay(20);
+}
+`},
+{name:'Light sensor → plotter', ports:{light:'A2'}, code:
+`// Light sensor on A2. Tick the "plotter" checkbox!
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int light = analogRead(A2);
+  Serial.print("light:");
+  Serial.println(light);
+  delay(50);
+}
+`},
+{name:'Temperature sensor → LCD', ports:{temp:'A3', lcd:'I2C'}, code:
+`// Temperature sensor on A3, RGB LCD on I2C
+#include <Wire.h>
+#include "rgb_lcd.h"
+#include <math.h>
+
+rgb_lcd lcd;
+const int B = 4275;        // B value of the thermistor
+const long R0 = 100000;    // R0 = 100k
+
+void setup() {
+  lcd.begin(16, 2);
+  lcd.setRGB(0, 128, 255);
+  lcd.print("Temperature:");
+}
+
+void loop() {
+  int a = analogRead(A3);
+  float R = 1023.0 / a - 1.0;
+  R = R0 * R;
+  float temperature = 1.0 / (log(R / R0) / B + 1 / 298.15) - 273.15;
+
+  lcd.setCursor(0, 1);
+  lcd.print(temperature);
+  lcd.print(" C   ");
+  if (temperature > 30) {
+    lcd.setRGB(255, 0, 0);
+  } else {
+    lcd.setRGB(0, 128, 255);
+  }
+  delay(200);
+}
+`},
+{name:'Temp. & humidity (AHT20) → LCD', ports:{dht:'I2C', lcd:'I2C'}, code:
+`// AHT20 temperature & humidity sensor + LCD, both on I2C
+#include <Wire.h>
+#include "AHT20.h"
+#include "rgb_lcd.h"
+
+AHT20 AHT;
+rgb_lcd lcd;
+
+void setup() {
+  Serial.begin(9600);
+  Wire.begin();
+  AHT.begin();
+  lcd.begin(16, 2);
+}
+
+void loop() {
+  float humi, temp;
+  if (AHT.getSensor(&humi, &temp)) {   // humi is 0.0 - 1.0
+    lcd.setCursor(0, 0);
+    lcd.print("Temp: ");
+    lcd.print(temp);
+    lcd.print(" C ");
+    lcd.setCursor(0, 1);
+    lcd.print("Hum:  ");
+    lcd.print(humi * 100);
+    lcd.print(" % ");
+    Serial.print("temp:");
+    Serial.print(temp);
+    Serial.print(",humidity:");
+    Serial.println(humi * 100);
+  }
+  delay(500);
+}
+`},
+{name:'Slide potentiometer → NeoPixels', ports:{slide:'A1', neopixel:'D6'}, code:
+`// Slide potentiometer on A1, NeoPixel strip on D6
+#include <Adafruit_NeoPixel.h>
+
+#define PIN 6
+#define COUNT 10
+Adafruit_NeoPixel strip(COUNT, PIN, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  strip.begin();
+  strip.setBrightness(80);
+  strip.show();
+}
+
+void loop() {
+  int value = analogRead(A1);
+  int lit = map(value, 0, 1023, 0, COUNT);
+  for (int i = 0; i < COUNT; i++) {
+    if (i < lit) {
+      strip.setPixelColor(i, strip.Color(0, 150, 0));
+    } else {
+      strip.setPixelColor(i, 0);
+    }
+  }
+  strip.show();
+  delay(30);
+}
+`},
+{name:'NeoPixel rainbow', ports:{neopixel:'D6'}, code:
+`// Rainbow on the NeoPixel strip (D6)
+#include <Adafruit_NeoPixel.h>
+
+Adafruit_NeoPixel strip(10, 6, NEO_GRB + NEO_KHZ800);
+long firstHue = 0;
+
+void setup() {
+  strip.begin();
+  strip.setBrightness(60);
+}
+
+void loop() {
+  for (int i = 0; i < strip.numPixels(); i++) {
+    long hue = firstHue + i * 65536L / strip.numPixels();
+    strip.setPixelColor(i, strip.gamma32(strip.ColorHSV(hue)));
+  }
+  strip.show();
+  firstHue += 256;
+  delay(10);
+}
+`},
+{name:'Touch sensor counter → LCD', ports:{touch:'D3', lcd:'I2C'}, code:
+`// Touch sensor on D3 counts touches
+#include "rgb_lcd.h"
+
+rgb_lcd lcd;
+const int touch = 3;
+int counter = 0;
+bool previous = false;
+
+void setup() {
+  pinMode(touch, INPUT);
+  lcd.begin(16, 2);
+  lcd.setRGB(255, 100, 0);
+  lcd.print("Touches:");
+}
+
+void loop() {
+  bool now = digitalRead(touch);
+  if (now && !previous) {
+    counter++;
+    lcd.setCursor(0, 1);
+    lcd.print(counter);
+  }
+  previous = now;
+  delay(20);
+}
+`},
+{name:'Joystick', ports:{joystick:'A0'}, code:
+`// Joystick on port A0 (X = A0, Y = A1). Clicking gives X = 1023.
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int x = analogRead(A0);
+  int y = analogRead(A1);
+  Serial.print("x:");
+  Serial.print(x);
+  Serial.print(",y:");
+  Serial.println(y);
+  if (x > 1000) {
+    Serial.println("Click!");
+  }
+  delay(50);
+}
+`},
+{name:'Sound sensor → NeoPixel VU meter', ports:{sound:'A3', neopixel:'D6'}, code:
+`// Sound sensor on A3, NeoPixel strip on D6
+#include <Adafruit_NeoPixel.h>
+
+Adafruit_NeoPixel strip(10, 6, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  strip.begin();
+  Serial.begin(9600);
+}
+
+void loop() {
+  long sum = 0;
+  for (int i = 0; i < 32; i++) sum += analogRead(A3);
+  int level = sum / 32;
+  Serial.println(level);
+
+  int lit = map(level, 0, 800, 0, 10);
+  strip.clear();
+  for (int i = 0; i < lit; i++) {
+    strip.setPixelColor(i, strip.Color(i * 25, 255 - i * 25, 0));
+  }
+  strip.show();
+  delay(20);
+}
+`},
+{name:'IMU acceleration → plotter', ports:{imu:'I2C'}, code:
+`// 9DOF IMU (ICM20600 + AK09918) on I2C. Tilt with the sliders, or click "Shake".
+#include <Wire.h>
+#include "ICM20600.h"
+
+ICM20600 icm20600(true);
+
+void setup() {
+  Serial.begin(9600);
+  Wire.begin();
+  icm20600.initialize();
+}
+
+void loop() {
+  Serial.print("ax:");               // acceleration in mg (1000 = 1 g)
+  Serial.print(icm20600.getAccelerationX());
+  Serial.print(",ay:");
+  Serial.print(icm20600.getAccelerationY());
+  Serial.print(",az:");
+  Serial.println(icm20600.getAccelerationZ());
+  delay(50);
+}
+`},
+{name:'Serial input → LCD colour', ports:{lcd:'I2C'}, code:
+`// Type "red", "green" or "blue" below and press Enter
+#include "rgb_lcd.h"
+
+rgb_lcd lcd;
+
+void setup() {
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  lcd.print("Type a colour");
+  Serial.println("Type red, green or blue");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    String colour = Serial.readStringUntil('\\n');
+    colour.trim();
+    lcd.clear();
+    lcd.print(colour);
+    if (colour == "red") lcd.setRGB(255, 0, 0);
+    else if (colour == "green") lcd.setRGB(0, 255, 0);
+    else if (colour == "blue") lcd.setRGB(0, 0, 255);
+  }
+}
+`},
+];
+
+// ===== C++ (Arduino) → JavaScript translator =====
+const TYPE = '(?:(?:const|static|volatile)\\s+)*(?:(?:unsigned|signed)\\s+)?(?:long\\s+long|long\\s+int|short\\s+int|unsigned|boolean|bool|char|byte|int|long|short|float|double|word|String|size_t|u?int(?:8|16|32|64)_t|void)';
+const INTRE = /^(?:(?:const|static|volatile)\s+)*(?:(?:unsigned|signed)\s+)?(?:long|short|unsigned|byte|int|word|size_t|u?int(?:8|16|32|64)_t)\b/;
+const LIBS = 'rgb_lcd|Servo|Adafruit_NeoPixel|DHT|LSM6DS3|LIS3DHTR|AHT20|ICM20600|AK09918';
+const CASTT = '(?:unsigned\\s+)?(?:int|long|byte|short|word|u?int(?:8|16|32)_t|char|float|double|bool|boolean)';
+const SIZES = {char:1,byte:1,bool:1,boolean:1,int:4,long:4,float:4,double:8,short:2,word:2,uint8_t:1,int8_t:1,uint16_t:2,int16_t:2,uint32_t:4,int32_t:4};
+const castFn = t => /float|double/.test(t) ? 'Number' : /bool/.test(t) ? 'Boolean' : /^char$/.test(t) ? '__chr' : '__int';
+
+const ESC = { n: 10, r: 13, t: 9, '0': 0, a: 7, b: 8, '\\': 92, "'": 39, '"': 34 };
+const charCode = lit => { const b = lit.slice(1, -1); return b[0] === '\\' ? (b[1] in ESC ? ESC[b[1]] : b.charCodeAt(1)) : b.charCodeAt(0) || 0; };
+
+function transpile(src) {
+  const strs = []; let o = '';
+  // strings and comments out of the way first
+  for (let i = 0; i < src.length;) {
+    const c = src[i], n = src[i + 1];
+    if (c === '/' && n === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+    if (c === '/' && n === '*') { let j = src.indexOf('*/', i + 2); if (j < 0) j = src.length; o += src.slice(i, j).replace(/[^\n]/g, ''); i = j + 2; continue; }
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== c && src[j] !== '\n') { if (src[j] === '\\') j++; j++; }
+      strs.push(src.slice(i, j + 1)); o += '__S' + (strs.length - 1) + '__'; i = j + 1; continue;
+    }
+    o += c; i++;
+  }
+  let s = o;
+  const nl = m => '\n'.repeat((m.match(/\n/g) || []).length);
+
+  s = s.replace(/^[ \t]*#[ \t]*define[ \t]+(\w+)[ \t]+(.+)$/gm, 'const $1 = $2;');
+  s = s.replace(/^[ \t]*#.*$/gm, '');
+  s = s.replace(/::/g, '.').replace(/->/g, '.').replace(/\bF\s*\(/g, '(').replace(/\bPROGMEM\b/g, '');
+  s = s.replace(/\b(\d+\.\d*|\d*\.\d+)[fF]\b/g, '$1');
+  s = s.replace(/\b(0[xX][0-9a-fA-F]+|0[bB][01]+|\d+)(?:ULL|ull|UL|ul|LL|ll|L|l|U|u)\b/g, '$1');
+  s = s.replace(/sizeof\s*\(\s*(\w+)\s*\)\s*\/\s*sizeof\s*\([^)]*\)/g, '$1.length');
+  s = s.replace(/sizeof\s*\(\s*(\w+)\s*\)/g, (m, n) => SIZES[n] ? '' + SIZES[n] : '__sizeof(' + n + ')');
+  // casts
+  s = s.replace(new RegExp('\\(\\s*(' + CASTT + ')\\s*\\)\\s*\\(', 'g'), (m, t) => castFn(t) + '(');
+  s = s.replace(new RegExp('\\(\\s*(' + CASTT + ')\\s*\\)\\s*([A-Za-z_][\\w.]*(?:\\[[^\\]]*\\])*(?:\\([^()]*\\))?|\\d+(?:\\.\\d+)?)', 'g'), (m, t, e) => castFn(t) + '(' + e + ')');
+  s = s.replace(/(?<![\w.])(int|long|byte|word|short|float|double|char)\s*\(/g, (m, t) => castFn(t) + '(');
+  // library objects
+  s = s.replace(new RegExp('\\b(' + LIBS + ')\\s+(\\w+)\\s*=\\s*(?:new\\s+)?\\1\\s*\\(', 'g'), 'let $2 = new $1(');
+  s = s.replace(new RegExp('\\b(' + LIBS + ')\\s*(?:<[^>]*>)?\\s+(\\w+)\\s*\\(([^;]*)\\)\\s*;', 'g'), (m, c, n, a) => `let ${n} = new ${c}(${a});` + nl(m));
+  s = s.replace(new RegExp('\\b(' + LIBS + ')\\s*(?:<[^>]*>)?\\s+(\\w+(?:\\s*,\\s*\\w+)*)\\s*;', 'g'), (m, c, l) => 'let ' + l.split(',').map(x => x.trim() + ' = new ' + c + '()').join(', ') + ';' + nl(m));
+  // prototypes
+  s = s.replace(new RegExp('^[ \\t]*' + TYPE + '(?:\\s*[*&]\\s*|\\s+)(\\w+)\\s*\\([^)]*\\)\\s*;', 'gm'), m => nl(m));
+  // function definitions
+  const fns = [], intFns = [];
+  s = s.replace(new RegExp('(^|[^\\w.])(' + TYPE + ')(?:\\s*[*&]\\s*|\\s+)(\\w+)\\s*\\(([^)]*)\\)\\s*\\{', 'g'), (m, pre, type, name, params) => {
+    fns.push(name);
+    if (INTRE.test(type)) intFns.push(name);
+    const ps = params.split(',').map(p => p.trim()).filter(p => p && p !== 'void').map(p => {
+      const mm = p.match(/(\w+)\s*(?:\[[^\]]*\]\s*)*(=.*)?$/);
+      return mm ? mm[1] + (mm[2] || '') : p;
+    });
+    return pre + 'async function ' + name + '(' + ps.join(', ') + ') {' + nl(m.slice(pre.length));
+  });
+  // static locals: hoist to global scope so they keep their value
+  const hoisted = [];
+  const ints = new Set(), floats = new Set(), strNames = new Set(), boolNames = new Set(), charNames = new Set();
+  s = s.replace(new RegExp('\\bstatic\\s+(' + TYPE + ')\\s+(\\w+)\\s*(?:=\\s*([^;]+))?;', 'g'), (m, type, name, init) => {
+    if (INTRE.test(type)) ints.add(name); else floats.add(name);
+    hoisted.push(`let ${name} = ${init !== undefined ? init : (/String/.test(type) ? '""' : '0')};`);
+    return nl(m);
+  });
+  // variable declarations
+  s = s.replace(new RegExp('(^|[^\\w.])(' + TYPE + ')(?:\\s*[*&]\\s*|\\s+)(?=([A-Za-z_]\\w*))', 'g'), (m, pre, type, name, off, str) => {
+    const isArr = /^\s*\[/.test(str.slice(off + m.length + name.length));
+    if (INTRE.test(type) && !isArr) ints.add(name); else floats.add(name);
+    if (/String/.test(type)) strNames.add(name);
+    if (/bool/.test(type)) boolNames.add(name);
+    if (/^(?:(?:const|static|volatile)\s+)*char$/.test(type) && !isArr) charNames.add(name);
+    return pre + 'let ';
+  });
+  // arrays
+  s = s.replace(/\blet\s+(\w+)\s*((?:\[[^\]]*\]\s*)+)(=?)/g, (m, n, d, eq) => eq ? `let ${n} =` :
+    `let ${n} = __arr(${[...d.matchAll(/\[([^\]]*)\]/g)].map(x => x[1].trim() || '0').join(',')})`);
+  s = bracketize(s);
+  // uninitialised variables start at 0 (like globals in C)
+  s = s.replace(/\blet\s+(\w+(?:\s*,\s*\w+)*)\s*;/g, (m, l) => 'let ' + l.split(',').map(x => {
+    x = x.trim(); return x + ' = ' + (strNames.has(x) ? '""' : boolNames.has(x) ? 'false' : '0');
+  }).join(', ') + ';');
+  // integer variables stay integer
+  for (const n of ints) {
+    if (floats.has(n)) continue;
+    s = s.replace(new RegExp('(?<![\\w.])(' + n + ')\\s*([-+*/%]?)=(?!=)\\s*([^;{}]+?)\\s*;', 'g'),
+      (m, v, op, e) => {
+        // only a whole statement: in "if (a = 5) f(a);" the match runs past the ")" and must be left alone
+        let d = 0; for (const c of e) { if (c === '(') d++; else if (c === ')' && --d < 0) return m; }
+        if (d !== 0) return m;
+        return op ? `${v} = __int(${v} ${op} (${e}));` : `${v} = __int(${e});`;
+      });
+  }
+  s = s.replace(/\.length\s*\(\s*\)/g, '.length');
+  // int functions return whole numbers
+  for (const n of intFns) {
+    const m = new RegExp('async function ' + n + '\\([^)]*\\) \\{').exec(s); if (!m) continue;
+    let e = m.index + m[0].length;
+    for (let d = 1; e < s.length && d > 0; e++) { if (s[e] === '{') d++; else if (s[e] === '}') d--; }
+    s = s.slice(0, m.index) + s.slice(m.index, e).replace(/\breturn\s+([^;]+);/g, 'return __int($1);') + s.slice(e);
+  }
+  // &variable as an argument: pass a reference the library can write into
+  s = s.replace(/([(,]\s*)&\s*([A-Za-z_]\w*)(?=\s*[,)])/g, '$1__ref(() => $2, __v => $2 = __v)');
+  s = addYields(s);
+  for (const n of new Set([...fns, 'delay']))
+    s = s.replace(new RegExp('(?<![\\w.]|function\\s+)' + n + '\\s*\\(', 'g'), 'await ' + n + '(');
+  s = hoisted.join(' ') + s;
+  // char variables print as characters
+  for (const n of charNames)
+    s = s.replace(new RegExp('\\.(print|println)\\s*\\(\\s*' + n + '\\s*([,)])', 'g'), `.$1(__chr(${n})$2`);
+  // In C a char is a number ('0' + 5 == 53). Keep 'x' as text only when it is a whole function argument.
+  return s.replace(/__S(\d+)__/g, (m, i, off) => {
+    const lit = strs[+i];
+    if (lit[0] !== "'") return lit;
+    const before = s.slice(0, off).match(/\S\s*$/), after = s.slice(off + m.length).match(/^\s*\S/);
+    if (before && /[(,]/.test(before[0][0]) && after && /[,)]/.test(after[0].trim())) return lit;
+    return '' + charCode(lit);
+  });
+}
+
+function bracketize(s) {
+  const re = /\blet\s+\w+\s*=\s*\{/g; const a = s.split(''); let m;
+  while ((m = re.exec(s))) {
+    for (let i = m.index + m[0].length - 1, d = 0; i < a.length; i++) {
+      if (a[i] === '{') { d++; a[i] = '['; }
+      else if (a[i] === '}') { d--; a[i] = ']'; if (d === 0) break; }
+    }
+  }
+  return a.join('');
+}
+
+// every loop body gets an `await __yield()` so endless loops never freeze the page
+function addYields(s) {
+  const re = /\b(?:for|while)\s*\(|\bdo\s*\{/g; let m, res = '', last = 0;
+  while ((m = re.exec(s))) {
+    if (m[0].startsWith('do')) { const e = m.index + m[0].length; res += s.slice(last, e) + ' await __yield();'; last = e; continue; }
+    let i = m.index + m[0].length, d = 1;
+    while (i < s.length && d > 0) { if (s[i] === '(') d++; else if (s[i] === ')') d--; i++; }
+    let j = i; while (j < s.length && /\s/.test(s[j])) j++;
+    if (s[j] === '{') { res += s.slice(last, j + 1) + ' await __yield();'; last = j + 1; re.lastIndex = j + 1; }
+    else if (s[j] === ';') {
+      if (/\}\s*$/.test(s.slice(0, m.index))) continue; // tail of do { } while (...);
+      res += s.slice(last, j) + '{ await __yield(); }'; last = j + 1; re.lastIndex = j + 1;
+    } else {
+      let k = j, dd = 0;
+      for (; k < s.length; k++) { const c = s[k]; if ('([{'.includes(c)) dd++; else if (')]}'.includes(c)) dd--; else if (c === ';' && dd === 0) break; }
+      res += s.slice(last, j) + '{ await __yield(); ' + s.slice(j, k + 1) + ' }'; last = k + 1; re.lastIndex = k + 1;
+    }
+  }
+  return res + s.slice(last);
+}
+//#T-END
+
+// EAVP course sketches, generated by tools/build-eavp.js from eavp/ (do not edit by hand)
+//#EAVP-START
+const EAVP = [
+ {
+  "group": "EAVP exercises (start code)",
+  "name": "1 Basis sensor en serial prints",
+  "code": "/* PROGRAMMING IN ARDUINO, Reading sensors and communicating with the PC */\n/*\n * This code reads an analog sensor on pin A3 and sends this value to the computer.\n */\n\n#define sensor A3  // This tells Arduino that whenever we type sensor, we mean the sensor connected to pin A3. If we ever change pins, it only needs to be done in 1 place instead of 50x all over the code \\\n                  // Why there is no ; needed here is the first exception to the rule, one of the oddities that every language has.\n\nint sensorvalue = 0;  // This creates a variable in which we can temporarily store the value of the sensor later on. You can always choose the name yourself, but use a name that indicates what it is used for.\n\nvoid setup() {\n  // Put your startup code here (these things are processed by Arduino when it starts up). These are things like starting communication and peripheral components, indicator lights and so on.\n\n  Serial.begin(9600);  // This line starts the communication with the computer and thus allows text to be sent to the computer (9600 indicates the communication speed, other values are possible but use 9600 for now).\n  delay(2500);         //The connection between laptop and Arduino does not start immediately, this delay gives the connection time to start up. Only after this can you print things.\n\n}\n\nvoid loop() {\n  // Put your code here that will keep running forever as long as the Arduino has power.\n\n  sensorvalue = analogRead(sensor);  // This code reads the analog value of the sensor and stores it in the variable sensorvalue (this is a value between 0 and 1023)\n\n  Serial.print(\"Sensor A3 measures: \");  // This line is optional to make the output neater and more readable, especially when you later read out multiple sensors together\n\n  Serial.println(sensorvalue);  // This line prints the value of the variable and then prints a line break (starts a new line)\n\n  delay(250);  // This pauses the Arduino for 250ms. Purely so that the data rate doesn't overwhelm the computer and the output stays readable.\n}\n\n/************************************* EXERCISES: **************************************************************\n a  First read through this code line by line, and also read all comments (everything after a //) so you can follow its structure.\n b  Try to extend this code so that it prints \"hello world\" to the computer when you start the Arduino.\n c  Test a few analog sensors on pin A3 and try to find the minimum and maximum values of each sensor (note that these are not always 0 and 1023 as in theory). The potentiometers work best, the temperature sensor and the sound sensor are not very sensitive.\n d  Try to convert the sensor's measurement, to map it so that the output to the computer ranges from 0 to 100 (Hint: This can be done using math in the code or with the map function: https://www.arduino.cc/reference/en/language/functions/math/map/ )\n e  Instead of reading only one sensor, try reading 2 sensors and sending both. (Hint: Also try sending Serial.print(\"\\t\"); between your other measurements...)\n f  Combine the values of 2 sensors and send their average value back to the computer (Hint: (A+B)/2)\n */\n",
+  "ports": {},
+  "task": {
+   "title": "Exercise 1: Basis sensor en serial prints",
+   "list": [
+    {
+     "letter": "a",
+     "text": "First read through this code line by line, and also read all comments (everything after a //) so you can follow its structure."
+    },
+    {
+     "letter": "b",
+     "text": "Try to extend this code so that it prints \"hello world\" to the computer when you start the Arduino."
+    },
+    {
+     "letter": "c",
+     "text": "Test a few analog sensors on pin A3 and try to find the minimum and maximum values of each sensor (note that these are not always 0 and 1023 as in theory). The potentiometers work best, the temperature sensor and the sound sensor are not very sensitive."
+    },
+    {
+     "letter": "d",
+     "text": "Try to convert the sensor's measurement, to map it so that the output to the computer ranges from 0 to 100 (Hint: This can be done using math in the code or with the map function: https://www.arduino.cc/reference/en/language/functions/math/map/ )"
+    },
+    {
+     "letter": "e",
+     "text": "Instead of reading only one sensor, try reading 2 sensors and sending both. (Hint: Also try sending Serial.print(\"\\t\"); between your other measurements...)"
+    },
+    {
+     "letter": "f",
+     "text": "Combine the values of 2 sensors and send their average value back to the computer (Hint: (A+B)/2)"
+    }
+   ]
+  }
+ },
+ {
+  "group": "EAVP exercises (start code)",
+  "name": "2 Basiscode voor de Neopixel",
+  "code": "/*\n    First code to control the Neopixels (RGB LED Stick). This code starts the connection with the LED and simply displays a green color.\n\n    Before you get started with this code you need to do 1 extra thing in the Arduino IDE.\n    We are going to use a Library that makes programming the Neopixel LED much easier.\n\n    To be able to use it, go to Sketch -> Include Library -> Manage Libraries\n\n    And search at the top for \"Neopixel\". Then choose the library named exactly \"Adafruit Neopixel\" by Adafruit (by clicking install).\n    From now on you can compile and use the code!\n\n    About the Neopixel: This is not an ordinary LED like the one seen in class. This is an LED with a processor inside!, and internally also equipped with all the necessary resistors and connections.\n    We don't light it up by simply applying voltage with digitalWrite, it needs data to work. That's why we use the library, which takes care of all the communication for us.\n*/\n\n#include <Adafruit_NeoPixel.h>  //Load the neopixel library\n\n#define ledpin D6       //We define that the LED will be connected to pin 6 of the Arduino. You can write this either as 6 or as D6\n#define aantal_leds 10  //And specify that 10 LEDs need to be controlled.\nAdafruit_NeoPixel pixels = Adafruit_NeoPixel(aantal_leds, ledpin, NEO_GRB + NEO_KHZ800);\n// And create a neopixel called pixels, in the function you pass:(The number of LEDs, pin, LED type)\n\nint delaytime = 100;  // I'm also writing the delay at the top here already, This is cleaner practice so that changes in the code itself are rarely needed.\nlong kleur = 0;       // Integer in which the desired color is temporarily stored\n// long (long number) instead of int (integer) since the 3 colors together would be too large for an int, a long goes up to 2 billion instead of 32767.\n\nvoid setup() {\n  Serial.begin(9600);        //Start connection with the PC\n  pixels.begin();            // Start connection with the LED (This has a fixed speed so we don't need to specify it)\n  pixels.clear();            // Turn all LEDs off\n  pixels.setBrightness(64);  // To spare your eyes a bit we dim the maximum brightness of the LEDs\n  pixels.show();             // And actually send these settings to the LEDs.\n}\n\nvoid loop() {\n  kleur = pixels.Color(0, 255, 0);  // Create a color and store it in the variable kleur\n  pixels.fill(kleur);               // Send this color to all the LEDs\n  pixels.show();                    // Send a signal to the LEDs that all LEDs may show the color\n  delay(delaytime);\n}\n\n/* all neopixel codes: https://learn.adafruit.com/adafruit-neopixel-uberguide/arduino-library-use\n    *pixels.begin();                      //Starts communication with the LED(s), *and therefore only belongs in the setup\n    *pixels.setBrightness(dimwaarde);     //*May only be in the setup! value between 0 and 255. This number determines the maximum value of the LED but only belongs in the setup\n    pixels.Color(R,G,B);                  //Converts the 3 color values for R, G and B into 1 number that Arduino can send to the LED\n    pixels.setPixelColor(led_nr, kleur);  //Tells one/the LED which color you want. This goes into the LED's memory but is not shown yet\n    pixels.setPixelColor(led_nr, R, G, B);//Alternative version of the function with which you can pass the color directly\n    pixels.fill(kleur);                   //Sets all LEDs in your chain to that color at once\n    pixels.fill(kleur, vanaf_nr, aantal); //Sets part of the LEDs of the chain at the same time\n    pixels.gamma32(kleur);                //This function corrects your color to a possibly better representation on LEDs.\n    pixels.show();                        //Sends a signal to all LEDs to show the color they have in their memory\n    pixels.clear();                       //Resets the color of the LED to 0,0,0 and thus off. (still needs a .show() afterwards)\n*/\n\n/************************************* EXERCISES: **************************************************************\n a  Above is a list of possible functions you can use with the neopixel LEDs; below are the exercises\n b  Make the LED shine a red light instead of the green\n c  Make the LED alternate between 2 colors in a loop (your own choice of colors)(Copy paste, don't forget the show() and delay().)\n d  There is more than one LED, try to control some LEDs individually (either in the same color, or a color per LED)\n e  Also make the LEDs go completely off for a moment with the function clear();\n f  enough blinking, now we want control!: Make a sensor determine the brightness of the green (hint: map() ) The sensor gives 0-1024, the LED wants 0-255\n g  One color is a bit boring, make a code where one sensor chooses the color, and a second sensor sets the brightness. (hint: map R, G and B separately) (transitioning between 3 colors comes later, but is a bit more difficult)\n h  With the potentiometers this was simple. Try the same with a more difficult analog sensor, but make sure the lamp still goes fully on and off (temperature sensor or sound sensor for example) (again hint: map() and constrain())\n*/\n",
+  "ports": {},
+  "task": {
+   "title": "Exercise 2: Basiscode voor de Neopixel",
+   "list": [
+    {
+     "letter": "a",
+     "text": "Above is a list of possible functions you can use with the neopixel LEDs; below are the exercises"
+    },
+    {
+     "letter": "b",
+     "text": "Make the LED shine a red light instead of the green"
+    },
+    {
+     "letter": "c",
+     "text": "Make the LED alternate between 2 colors in a loop (your own choice of colors)(Copy paste, don't forget the show() and delay().)"
+    },
+    {
+     "letter": "d",
+     "text": "There is more than one LED, try to control some LEDs individually (either in the same color, or a color per LED)"
+    },
+    {
+     "letter": "e",
+     "text": "Also make the LEDs go completely off for a moment with the function clear();"
+    },
+    {
+     "letter": "f",
+     "text": "enough blinking, now we want control!: Make a sensor determine the brightness of the green (hint: map() ) The sensor gives 0-1024, the LED wants 0-255"
+    },
+    {
+     "letter": "g",
+     "text": "One color is a bit boring, make a code where one sensor chooses the color, and a second sensor sets the brightness. (hint: map R, G and B separately) (transitioning between 3 colors comes later, but is a bit more difficult)"
+    },
+    {
+     "letter": "h",
+     "text": "With the potentiometers this was simple. Try the same with a more difficult analog sensor, but make sure the lamp still goes fully on and off (temperature sensor or sound sensor for example) (again hint: map() and constrain())"
+    }
+   ]
+  }
+ },
+ {
+  "group": "EAVP exercises (start code)",
+  "name": "3 Basiscode voor de servo",
+  "code": "/*\n * Basic code to control the servo\n * This code makes the servo follow the value of the analog input\n */\n\n#include <Servo.h> // load library\n\n#define sensor A3 // define pins for the sensor and the servo\n#define servopin D9\nServo servomotor; // define a servo to control a servo called servomotor\n\nint value; // variable to read the value from the analog pin\n\nvoid setup(){\n  servomotor.attach(servopin); // attaches the servo on pin 9 and connects, without a known position!\n}\n\nvoid loop()\n{\n  value = analogRead(sensor);          // reads the value of the potentiometer (value between 0 and 1023)\n  value = map(value, 0, 1023, 0, 180); // scale it to use it with the servo (value between 0 and 180)\n  servomotor.write(value);             // sets the servo position to value\n  delay(15);                           // waits for the servo to get there\n}\n\n/************************************* EXERCISES: **************************************************************\n a  Check your sensor and/or servo so that it doesn't behave strangely when it is at its extreme position (For most of them this is no longer necessary)\n    What I mean by this: A servo sometimes has an internal physical limit that restricts the range to, for example, 10 - 160 degrees.\n    If you then send the servo to 0 or to 180, it will collide, strain a lot, get hot and break.\n    So you need to check what the range of your servo is, and make sure you never go outside that range.\n b  Invert the behavior of the servo (left must become right)\n c  At startup, make your servo first move fully to the left and fully to the right as a kind of waking up (don't forget the delay)\n d  There is a more advanced option to control servos, not with \"human readable\" 0-180° but in actual pulse width in microseconds.\n    Search the Arduino site in the servo documentation to see if you can find this (something with servo and microseconds).\n    This can help to get smoother movements since the range of 0 - 180 expands to 1000 - 2000\n    So 5 times as much resolution, but more abstract units and no longer ° of the angle.\n    For the neopixel I gave the possible functions for that component, but in practice you will mostly have to search online!: https://docs.arduino.cc/libraries/servo/\n */\n",
+  "ports": {},
+  "task": {
+   "title": "Exercise 3: Basiscode voor de servo",
+   "list": [
+    {
+     "letter": "a",
+     "text": "Check your sensor and/or servo so that it doesn't behave strangely when it is at its extreme position (For most of them this is no longer necessary)\nWhat I mean by this: A servo sometimes has an internal physical limit that restricts the range to, for example, 10 - 160 degrees.\nIf you then send the servo to 0 or to 180, it will collide, strain a lot, get hot and break.\nSo you need to check what the range of your servo is, and make sure you never go outside that range."
+    },
+    {
+     "letter": "b",
+     "text": "Invert the behavior of the servo (left must become right)"
+    },
+    {
+     "letter": "c",
+     "text": "At startup, make your servo first move fully to the left and fully to the right as a kind of waking up (don't forget the delay)"
+    },
+    {
+     "letter": "d",
+     "text": "There is a more advanced option to control servos, not with \"human readable\" 0-180° but in actual pulse width in microseconds.\nSearch the Arduino site in the servo documentation to see if you can find this (something with servo and microseconds).\nThis can help to get smoother movements since the range of 0 - 180 expands to 1000 - 2000\nSo 5 times as much resolution, but more abstract units and no longer ° of the angle.\nFor the neopixel I gave the possible functions for that component, but in practice you will mostly have to search online!: https://docs.arduino.cc/libraries/servo/"
+    }
+   ]
+  }
+ },
+ {
+  "group": "EAVP exercises (start code)",
+  "name": "4 Back to zero en digitaal",
+  "code": "void setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}\n\n\n/************************************* EXERCISES: **************************************************************\n a  And now it's completely up to you, briefly try to control both the LED and the servo in the same code with a few sensors\n    Make sure everything is calibrated and otherwise be creative. Don't spend too much time on this. Mainly figure out how to copy paste the previous examples together and combine them.\n\n b  We have now used a lot of analog sensors, and controlled things. The next step is digital sensors (I2C):\n    The Grove kit contains a few I2C sensors that we can only control with a library:\n    The digital temperature sensor is an AHT20: https://wiki.seeedstudio.com/Grove-AHT20-I2C-Industrial-Grade-Temperature&Humidity-Sensor/#upgradable-to-industrial-sensors\n      We prefer the library from Seeed: Seeed_Arduino_AHT20\n    The last one is the LCD RGB screen: https://wiki.seeedstudio.com/Grove-LCD_RGB_Backlight/\n      Here too the library from Seeed: Grove - LCD RGB Backlight\n    These were the 2 simple I2C sensors, then one more advanced, only for those who got through the rest of the exercises quickly:\n      The IMU sensor is a 9dof (an lcm20600 and AK09918): https://wiki.seeedstudio.com/Grove-IMU_9DOF-lcm20600+AK09918/\n        This one is harder to add (because there is a bug in their code), open this link and download the lib via the code>download button: https://github.com/AntwerpDesignFactory/Seeed_ICM20600_AK09918\n        Then in the library manager you can add .zip library\n\n c  And one more useful exercise on this:\n    - You now have 2 temperature sensors, an analog one and an I2C digital one. The digital one gives your exact temperature directly, the analog one a measurement on an unknown scale.\n      write a map so that the analog sensor also gives a correct measurement. Do this by comparing the measurements at 2 temperatures (inside and outside for example).\n    You will often need this skill in practice and in industry since most sensors are good, but don't give a calibrated measurement. Only after this calibration step can you use them meaningfully.\n */\n",
+  "ports": {},
+  "task": {
+   "title": "Exercise 4: Back to zero en digitaal",
+   "list": [
+    {
+     "letter": "a",
+     "text": "And now it's completely up to you, briefly try to control both the LED and the servo in the same code with a few sensors\nMake sure everything is calibrated and otherwise be creative. Don't spend too much time on this. Mainly figure out how to copy paste the previous examples together and combine them."
+    },
+    {
+     "letter": "b",
+     "text": "We have now used a lot of analog sensors, and controlled things. The next step is digital sensors (I2C):\nThe Grove kit contains a few I2C sensors that we can only control with a library:\nThe digital temperature sensor is an AHT20: https://wiki.seeedstudio.com/Grove-AHT20-I2C-Industrial-Grade-Temperature&Humidity-Sensor/#upgradable-to-industrial-sensors\nWe prefer the library from Seeed: Seeed_Arduino_AHT20\nThe last one is the LCD RGB screen: https://wiki.seeedstudio.com/Grove-LCD_RGB_Backlight/\nHere too the library from Seeed: Grove - LCD RGB Backlight\nThese were the 2 simple I2C sensors, then one more advanced, only for those who got through the rest of the exercises quickly:\nThe IMU sensor is a 9dof (an lcm20600 and AK09918): https://wiki.seeedstudio.com/Grove-IMU_9DOF-lcm20600+AK09918/\nThis one is harder to add (because there is a bug in their code), open this link and download the lib via the code>download button: https://github.com/AntwerpDesignFactory/Seeed_ICM20600_AK09918\nThen in the library manager you can add .zip library"
+    },
+    {
+     "letter": "c",
+     "text": "And one more useful exercise on this:\n- You now have 2 temperature sensors, an analog one and an I2C digital one. The digital one gives your exact temperature directly, the analog one a measurement on an unknown scale.\nwrite a map so that the analog sensor also gives a correct measurement. Do this by comparing the measurements at 2 temperatures (inside and outside for example).\nYou will often need this skill in practice and in industry since most sensors are good, but don't give a calibrated measurement. Only after this calibration step can you use them meaningfully."
+    }
+   ]
+  }
+ },
+ {
+  "group": "EAVP exercises (start code)",
+  "name": "5 for if while serial",
+  "code": "void setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}\n\n/************************************* EXERCISES: **************************************************************\n    So far we have used almost only the analog functions of Arduino, from now on we try to transform this into digital functions:\n    for if while else switch break, ... Read up on what these functions do before you go through the exercises!: https://docs.arduino.cc/language-reference/#structure\n a  Write your first own function to control the LED with (hint, put in it the 3 lines of code that you otherwise keep repeating)\n b  Use an if(){}else{} to make your LED turn on and off. Start simple and make the LED do the same as the push button (pressed = on, and released = off). From now on we work digitally instead of analog and with boolean true and false\n c  A push button is handy, but even handier is if the lamp turns on after one tap, and turns back off after a 2nd tap (so you don't have to hold the button). Hint: the principle is called toggle and can be done by keeping track of a variable)\n d  Now make sure the button responds correctly, regardless of how long you have held the button down. (for this you add a while loop)\n e  Now try to make your LED fade in and out instead of turning on and off immediately. (make this a slow fade (hint: use a for loop or a counter))\n f  Add an extra bit to your fade code that stops the fade if the button (or another button) is pressed again. (with a break;)\n g  Make a lamp with four or so colors where you scroll through the colors by pressing the button (use a separate function for each mode to keep things clear!, and a variable to keep track of the current state/color).\nExtra:\n h  Use a Serial.read to make the current mode depend on what you send yourself via the Serial monitor.\n i  Do something with multiple buttons where something different happens when both are pressed than when only 1 button is pressed, or where a long press is different from a short press.\n*/\n",
+  "ports": {},
+  "task": {
+   "title": "Exercise 5: for if while serial",
+   "list": [
+    {
+     "letter": "a",
+     "text": "Write your first own function to control the LED with (hint, put in it the 3 lines of code that you otherwise keep repeating)"
+    },
+    {
+     "letter": "b",
+     "text": "Use an if(){}else{} to make your LED turn on and off. Start simple and make the LED do the same as the push button (pressed = on, and released = off). From now on we work digitally instead of analog and with boolean true and false"
+    },
+    {
+     "letter": "c",
+     "text": "A push button is handy, but even handier is if the lamp turns on after one tap, and turns back off after a 2nd tap (so you don't have to hold the button). Hint: the principle is called toggle and can be done by keeping track of a variable)"
+    },
+    {
+     "letter": "d",
+     "text": "Now make sure the button responds correctly, regardless of how long you have held the button down. (for this you add a while loop)"
+    },
+    {
+     "letter": "e",
+     "text": "Now try to make your LED fade in and out instead of turning on and off immediately. (make this a slow fade (hint: use a for loop or a counter))"
+    },
+    {
+     "letter": "f",
+     "text": "Add an extra bit to your fade code that stops the fade if the button (or another button) is pressed again. (with a break;)"
+    },
+    {
+     "letter": "g",
+     "text": "Make a lamp with four or so colors where you scroll through the colors by pressing the button (use a separate function for each mode to keep things clear!, and a variable to keep track of the current state/color)."
+    },
+    {
+     "letter": "h",
+     "text": "Use a Serial.read to make the current mode depend on what you send yourself via the Serial monitor."
+    },
+    {
+     "letter": "i",
+     "text": "Do something with multiple buttons where something different happens when both are pressed than when only 1 button is pressed, or where a long press is different from a short press."
+    }
+   ]
+  }
+ }
+];
+//#EAVP-END
+
+// ===== Hardware model =====
+const $ = id => document.getElementById(id);
+const PORTS = {D9:[9,10],D2:[2,3],D3:[3,4],D4:[4,5],D5:[5,6],D6:[6,7],D7:[7,8],D8:[8,9],A0:[14,15],A1:[15,16],A2:[16,17],A3:[17,18]};
+const DP = ['D2','D3','D4','D5','D6','D7','D8','D9','A0','A1','A2','A3'], AP = ['A0','A1','A2','A3'];
+const MODULES = [
+  {id:'button',  name:'Button',               sub:'Digital - input',  ports:DP, def:'-'},
+  {id:'touch',   name:'Touch sensor',           sub:'Digital - input',  ports:DP, def:'-'},
+  {id:'buzzer',  name:'Buzzer',                 sub:'Digital - output', ports:DP, def:'-'},
+  {id:'servo',   name:'Servo motor',             sub:'Digital - output', ports:DP, def:'-'},
+  {id:'neopixel',name:'NeoPixel LED strip',     sub:'Digital - output', ports:DP, def:'-'},
+  {id:'rotary',  name:'Potentiometer (rotary)',  sub:'Analog - input',   ports:AP, def:'-'},
+  {id:'slide',   name:'Potentiometer (slide)', sub:'Analog - input',   ports:AP, def:'-'},
+  {id:'light',   name:'Light sensor',            sub:'Analog - input',   ports:AP, def:'-'},
+  {id:'temp',    name:'Temperature',            sub:'Analog - input',   ports:AP, def:'-'},
+  {id:'sound',   name:'Sound sensor',          sub:'Analog - input',   ports:AP, def:'-'},
+  {id:'joystick',name:'Joystick',               sub:'Analog - input (X on An, Y on An+1)', ports:AP, def:'-'},
+  {id:'lcd',     name:'RGB LCD screen',         sub:'I2C - output', ports:['I2C'], def:'-'},
+  {id:'dht',     name:'Temp. & humidity (AHT20)',  sub:'I2C - input',  ports:['I2C'], def:'-'},
+  {id:'imu',     name:'IMU 9DOF (ICM20600 + AK09918)',   sub:'I2C - input',  ports:['I2C'], def:'-'},
+];
+const MOD = Object.fromEntries(MODULES.map(m => [m.id, m]));
+const ICON = { button: '🔘', touch: '👆', buzzer: '🔊', servo: '⚙️', neopixel: '🌈', rotary: '🎛️', slide: '🎚️', light: '💡',
+  temp: '🌡️', sound: '🎤', joystick: '🕹️', lcd: '📟', dht: '💧', imu: '🧭' };
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch {} } };
+let cfg = Object.fromEntries(MODULES.map(m => [m.id, m.def]));
+try { Object.assign(cfg, JSON.parse(store.get('groveEmu.wiring') || '{}')); } catch {}
+
+const V = { // physical state of the inputs
+  button:false, touch:false, rotary:150, slide:512, light:50, temp:22, sound:20, clapUntil:0,
+  jx:512, jy:512, jclick:false, dhtT:22, dhtH:50, pitch:0, roll:0, heading:0, shakeUntil:0, gx:0, gy:0, gz:0,
+};
+const st = { out:{}, mode:{}, adcBits:10, servos:[], strips:[], tones:{}, irq:{} };
+const LCD = { buf:[[],[]], col:0, row:0, rgb:[255,255,255], on:true, cursor:false, blink:false, offset:0, begun:false };
+function lcdReset(){ LCD.buf = [Array(40).fill(' '), Array(40).fill(' ')]; Object.assign(LCD, {col:0,row:0,rgb:[255,255,255],on:true,cursor:false,blink:false,offset:0,begun:false}); }
+lcdReset();
+
+const pinsOf = id => PORTS[cfg[id]] || null;
+const isI2C = id => cfg[id] === 'I2C';
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+function modAnalog(id, idx) {
+  switch (id) {
+    case 'rotary': return idx ? null : V.rotary / 300 * 1023;
+    case 'slide':  return idx ? null : V.slide;
+    case 'light':  return idx ? null : V.light * 10.23;
+    case 'temp':   return idx ? null : 1023 / (Math.exp(4275 * (1 / (V.temp + 273.15) - 1 / 298.15)) + 1);
+    case 'sound':  if (idx) return null;
+      if (performance.now() < V.clapUntil) return 850 + Math.random() * 170;
+      return clamp(V.sound * 6 + (Math.random() - .5) * (40 + V.sound * 4), 0, 1023);
+    case 'joystick': return idx ? V.jy : (V.jclick ? 1023 : V.jx);
+    case 'button': return idx ? null : (V.button ? 1023 : 0);
+    case 'touch':  return idx ? null : (V.touch ? 1023 : 0);
+  }
+  return null;
+}
+function inputAt(pin) { // first input module wired to this pin
+  for (const m of MODULES) {
+    const p = pinsOf(m.id); if (!p) continue;
+    for (let k = 0; k < 2; k++) if (p[k] === pin) { const v = modAnalog(m.id, k); if (v !== null) return v; }
+  }
+  return null;
+}
+function normPin(p){ p = +p; return (p >= 0 && p <= 5 && arguments[1]) ? p + 14 : p; }
+
+// ===== Runtime =====
+const STOP = Symbol('stop');
+let running = false, runId = 0, t0 = performance.now(), lastYield = 0, pending = new Set();
+const mc = new MessageChannel(), mcq = [];
+mc.port1.onmessage = () => { const f = mcq.shift(); f && f(); };
+const macro = () => new Promise(r => { mcq.push(r); mc.port2.postMessage(0); });
+async function __yield() {
+  if (!running) throw STOP;
+  const t = performance.now();
+  if (t - lastYield > 12) { lastYield = t; await macro(); if (!running) throw STOP; }
+}
+function delay(ms) {
+  return new Promise((res, rej) => {
+    if (!running) return rej(STOP);
+    const o = { rej }; pending.add(o);
+    o.t = setTimeout(() => { pending.delete(o); lastYield = performance.now(); running ? res() : rej(STOP); }, Math.max(0, +ms || 0));
+  });
+}
+const warned = new Set();
+const warnOnce = msg => { if (!warned.has(msg)) { warned.add(msg); sysMsg(msg); } };
+
+function fmt(v, b) {
+  if (typeof v === 'boolean') v = v ? 1 : 0;
+  if (typeof v !== 'number') return v == null ? '' : '' + v;
+  if (Number.isNaN(v)) return 'nan';
+  if (!Number.isFinite(v)) return 'inf';
+  if (b === undefined) return Number.isInteger(v) ? '' + v : v.toFixed(2);
+  if (!Number.isInteger(v)) return v.toFixed(clamp(b, 0, 20));
+  if (b === 16 || b === 8 || b === 2) return (v >>> 0).toString(b).toUpperCase();
+  return b >= 2 && b <= 36 ? v.toString(b) : '' + v;
+}
+
+// --- Audio (buzzer) ---
+let actx = null, osc = null, gain = null;
+function ensureAudio() {
+  try {
+    if (!actx) { actx = new AudioContext(); osc = actx.createOscillator(); gain = actx.createGain(); osc.type = 'square'; gain.gain.value = 0; osc.connect(gain).connect(actx.destination); osc.start(); }
+    actx.resume();
+  } catch {}
+}
+function buzzFreq() {
+  const p = pinsOf('buzzer'); if (!p) return 0;
+  return st.tones[p[0]] || (st.out[p[0]] ? 1000 : 0);
+}
+function updateSound() {
+  if (!gain) return;
+  const f = running ? buzzFreq() : 0;
+  if (f > 0) osc.frequency.setValueAtTime(clamp(f, 20, 20000), actx.currentTime);
+  gain.gain.setTargetAtTime(f > 0 && !$('mute').checked ? 0.05 : 0, actx.currentTime, 0.005);
+}
+
+function setOut(pin, v) {
+  const prev = st.out[pin]; st.out[pin] = v;
+  if (prev !== v) { updateSound(); fireIrq(pin, prev ? 1 : 0, v ? 1 : 0); }
+}
+function fireIrq(pin, a, b) {
+  const q = st.irq[pin]; if (!q || a === b || !running) return;
+  if (q.mode === 1 || (q.mode === 3 && b) || (q.mode === 2 && !b)) Promise.resolve().then(q.fn).catch(onErr);
+}
+let lastDigital = {};
+function pollIrqs() { // inputs that changed since last frame trigger interrupts
+  for (const pin in st.irq) { const v = readDigital(+pin); if (lastDigital[pin] !== undefined) fireIrq(+pin, lastDigital[pin], v); lastDigital[pin] = v; }
+}
+function readDigital(pin) {
+  const v = inputAt(pin);
+  if (v !== null) return v > 511 ? 1 : 0;
+  if (st.mode[pin] === 1) return st.out[pin] ? 1 : 0;
+  return st.mode[pin] === 2 ? 1 : 0;
+}
+
+// --- Serial ---
+let rx = '', serBuf = '', serText = '', lineBuf = '', txAt = 0;
+function serOut(s) {
+  s = '' + s; if (!s) return;
+  serBuf += s; txAt = performance.now();
+  for (const ch of s) { if (ch === '\n') { plotLine(lineBuf); lineBuf = ''; } else if (ch !== '\r') lineBuf += ch; }
+}
+function sysMsg(s) { serBuf += (serText.endsWith('\n') || !serText && !serBuf ? '' : '\n') + '[emulator] ' + s + '\n'; }
+function takeNum(re) { const m = rx.match(re); if (!m) { rx = ''; return 0; } rx = rx.slice(m.index + m[0].length); return +m[0]; }
+const Serial = {
+  begin(){}, end(){}, flush(){}, setTimeout(){}, availableForWrite(){ return 64; },
+  print(v, b){ const s = fmt(v, b); serOut(s); return s.length; },
+  println(v, b){ const s = (v === undefined ? '' : fmt(v, b)) + '\r\n'; serOut(s); return s.length; },
+  write(v){ serOut(typeof v === 'number' ? String.fromCharCode(v) : v); return 1; },
+  printf(f, ...a){ let i = 0; serOut(String(f).replace(/%(-?\d*)(?:\.(\d+))?([dilufsxXc%])/g, (m, w, p, t) => {
+    if (t === '%') return '%'; const v = a[i++];
+    let r = t === 'f' ? (+v).toFixed(p === undefined ? 6 : +p) : t === 'x' ? (v >>> 0).toString(16) : t === 'X' ? (v >>> 0).toString(16).toUpperCase() : t === 'c' ? (typeof v === 'number' ? String.fromCharCode(v) : v) : t === 's' ? v : '' + Math.trunc(v);
+    return w ? (w.startsWith('-') ? r.padEnd(-w) : r.padStart(+w, w.startsWith('0') ? '0' : ' ')) : r; })); },
+  available(){ return rx.length; },
+  read(){ if (!rx.length) return -1; const c = rx.charCodeAt(0); rx = rx.slice(1); return c; },
+  peek(){ return rx.length ? rx.charCodeAt(0) : -1; },
+  readString(){ const s = rx; rx = ''; return s; },
+  readStringUntil(ch){ const i = rx.indexOf(ch); const s = i < 0 ? rx : rx.slice(0, i); rx = i < 0 ? '' : rx.slice(i + 1); return s; },
+  parseInt(){ return takeNum(/-?\d+/); },
+  parseFloat(){ return takeNum(/-?\d+(?:\.\d+)?/); },
+};
+const Wire = new Proxy({}, { get: (t, p) => p === 'then' ? undefined : () => 0 });
+
+// Unknown library methods return 0 instead of crashing.
+function lib(obj, cls) {
+  return new Proxy(obj, { get(t, p) {
+    if (p in t) { const v = t[p]; return typeof v === 'function' ? v.bind(t) : v; }
+    if (typeof p === 'symbol' || p === 'then' || p === 'toJSON') return undefined;
+    warnOnce(`${cls}.${String(p)}() is not simulated in the emulator (returns 0).`);
+    return () => 0;
+  }});
+}
+
+class rgb_lcd {
+  constructor(){ return lib(this, 'rgb_lcd'); }
+  begin(){ lcdReset(); LCD.begun = true; }
+  init(){ this.begin(); }
+  clear(){ LCD.buf = [Array(40).fill(' '), Array(40).fill(' ')]; LCD.col = LCD.row = LCD.offset = 0; }
+  home(){ LCD.col = LCD.row = LCD.offset = 0; }
+  setCursor(c, r){ LCD.col = clamp(c|0, 0, 39); LCD.row = clamp(r|0, 0, 1); }
+  write(c){ this._put(typeof c === 'number' ? (c < 8 ? '▮' : String.fromCharCode(c)) : ('' + c)[0]); return 1; }
+  _put(ch){ if (LCD.col < 40) LCD.buf[LCD.row][LCD.col] = ch; LCD.col++; }
+  print(v, b){ const s = fmt(v, b); for (const ch of s) this._put(ch); return s.length; }
+  println(v, b){ return this.print(v, b); }
+  setRGB(r, g, b){ LCD.rgb = [clamp(r|0,0,255), clamp(g|0,0,255), clamp(b|0,0,255)]; }
+  setColor(c){ this.setRGB(...([[255,255,255],[255,0,0],[0,255,0],[0,0,255]][c] || [255,255,255])); }
+  setColorWhite(){ this.setRGB(255,255,255); }
+  setColorAll(){ this.setRGB(0,0,0); }
+  setPWM(){} blinkLED(){} noBlinkLED(){} createChar(){} autoscroll(){} noAutoscroll(){} leftToRight(){} rightToLeft(){}
+  display(){ LCD.on = true; } noDisplay(){ LCD.on = false; }
+  cursor(){ LCD.cursor = true; } noCursor(){ LCD.cursor = false; }
+  blink(){ LCD.blink = true; } noBlink(){ LCD.blink = false; }
+  scrollDisplayLeft(){ LCD.offset = (LCD.offset + 1) % 40; }
+  scrollDisplayRight(){ LCD.offset = (LCD.offset + 39) % 40; }
+}
+class Servo {
+  constructor(){ this.pin = -1; this.angle = 90; st.servos.push(this); return lib(this, 'Servo'); }
+  attach(p){ this.pin = +p; return 1; }
+  detach(){ this.pin = -1; }
+  attached(){ return this.pin >= 0; }
+  write(a){ if (a > 200) return this.writeMicroseconds(a); this.angle = clamp(+a, 0, 180); }
+  writeMicroseconds(us){ this.angle = clamp((us - 544) / (2400 - 544) * 180, 0, 180); }
+  read(){ return Math.round(this.angle); }
+}
+function hsv(h, s = 255, v = 255) {
+  h = ((h % 65536) + 65536) % 65536 / 65536 * 6; s /= 255; v /= 255;
+  const i = Math.floor(h), f = h - i, p = v * (1 - s), q = v * (1 - s * f), t = v * (1 - s * (1 - f));
+  const [r, g, b] = [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i % 6];
+  return packRGB(r * 255, g * 255, b * 255);
+}
+const packRGB = (r, g, b) => ((clamp(r|0,0,255) << 16) | (clamp(g|0,0,255) << 8) | clamp(b|0,0,255)) >>> 0;
+class Adafruit_NeoPixel {
+  constructor(n = 10, pin = 6){ this.n = n|0; this.pin = +pin; this.px = Array(this.n).fill(0); this.shown = Array(this.n).fill(0); this.br = 255; st.strips.push(this); return lib(this, 'Adafruit_NeoPixel'); }
+  static Color(r, g, b){ return packRGB(r, g, b); }
+  static ColorHSV(h, s, v){ return hsv(h, s, v); }
+  static gamma32(c){ const g = x => Math.round(Math.pow(x / 255, 2.6) * 255); return packRGB(g(c >> 16 & 255), g(c >> 8 & 255), g(c & 255)); }
+  Color(r, g, b){ return packRGB(r, g, b); }
+  ColorHSV(h, s, v){ return hsv(h, s, v); }
+  gamma32(c){ return Adafruit_NeoPixel.gamma32(c); }
+  begin(){} updateLength(n){ this.n = n|0; this.px.length = this.shown.length = this.n; } setPin(p){ this.pin = +p; }
+  setPixelColor(i, r, g, b){ i |= 0; if (i < 0 || i >= this.n) return; this.px[i] = g === undefined ? (r >>> 0) & 0xFFFFFF : packRGB(r, g, b); }
+  getPixelColor(i){ return this.px[i|0] || 0; }
+  fill(c = 0, first = 0, count){ const end = count ? Math.min(this.n, first + count) : this.n; for (let i = first; i < end; i++) this.px[i] = c >>> 0; }
+  clear(){ this.px.fill(0); }
+  setBrightness(b){ this.br = clamp(b|0, 0, 255); }
+  getBrightness(){ return this.br; }
+  numPixels(){ return this.n; }
+  show(){ this.shown = this.px.slice(); this.shownBr = this.br; }
+  canShow(){ return true; }
+}
+class DHT {
+  constructor(){ return lib(this, 'DHT'); }
+  begin(){}
+  _ok(){ if (!isI2C('dht')) { warnOnce('Temp. & humidity sensor is not connected.'); return false; } return true; }
+  readTemperature(f){ if (!this._ok()) return NaN; const t = V.dhtT + (Math.random() - .5) * .1; return f ? t * 9 / 5 + 32 : t; }
+  readHumidity(){ return this._ok() ? V.dhtH + (Math.random() - .5) * .2 : NaN; }
+  readTempAndHumidity(a){ if (!this._ok()) return -1; a[0] = this.readHumidity(); a[1] = this.readTemperature(); return 0; }
+  readTargetData(a){ return this.readTempAndHumidity(a); }
+  computeHeatIndex(t){ return t; }
+}
+function accel() {
+  const p = V.pitch * Math.PI / 180, r = V.roll * Math.PI / 180;
+  const sh = performance.now() < V.shakeUntil ? 1.6 : 0.01;
+  const n = () => (Math.random() - .5) * sh;
+  return [Math.sin(p) + n(), -Math.sin(r) * Math.cos(p) + n(), Math.cos(r) * Math.cos(p) + n()];
+}
+const gyro = () => { const sh = performance.now() < V.shakeUntil ? 200 : 0.3; const n = () => (Math.random() - .5) * sh; return [V.gx + n(), V.gy + n(), V.gz + n()]; };
+class LSM6DS3 {
+  constructor(){ return lib(this, 'LSM6DS3'); }
+  begin(){ return isI2C('imu') ? 0 : 1; }
+  _a(i){ return isI2C('imu') ? accel()[i] : 0; }
+  _g(i){ return isI2C('imu') ? gyro()[i] : 0; }
+  readFloatAccelX(){ return this._a(0); } readFloatAccelY(){ return this._a(1); } readFloatAccelZ(){ return this._a(2); }
+  readFloatGyroX(){ return this._g(0); } readFloatGyroY(){ return this._g(1); } readFloatGyroZ(){ return this._g(2); }
+  readRawAccelX(){ return Math.round(this._a(0) * 16393); } readRawAccelY(){ return Math.round(this._a(1) * 16393); } readRawAccelZ(){ return Math.round(this._a(2) * 16393); }
+  readTempC(){ return 24 + Math.random() * .2; } readTempF(){ return this.readTempC() * 9 / 5 + 32; }
+}
+const setRef = (r, v) => { if (r && r.set) r.set(v); };
+class AHT20 {
+  constructor(){ return lib(this, 'AHT20'); }
+  begin(){ return true; }
+  _ok(){ if (!isI2C('dht')) { warnOnce('Temp. & humidity sensor is not connected.'); return false; } return true; }
+  getSensor(h, t){ if (!this._ok()) return 0; setRef(h, (V.dhtH + (Math.random() - .5) * .2) / 100); setRef(t, V.dhtT + (Math.random() - .5) * .1); return 1; }
+  getTemperature(t){ if (!this._ok()) return 0; setRef(t, V.dhtT + (Math.random() - .5) * .1); return 1; }
+  getHumidity(h){ if (!this._ok()) return 0; setRef(h, (V.dhtH + (Math.random() - .5) * .2) / 100); return 1; }
+}
+class ICM20600 {
+  constructor(){ return lib(this, 'ICM20600'); }
+  initialize(){} reset(){} setPowerMode(){} setAccScaleRange(){} setGyroScaleRange(){} setAccOutputDataRate(){} setGyroOutputDataRate(){}
+  getDeviceID(){ return 0x11; }
+  getAccelerationX(){ return isI2C('imu') ? Math.round(accel()[0] * 1000) : 0; }
+  getAccelerationY(){ return isI2C('imu') ? Math.round(accel()[1] * 1000) : 0; }
+  getAccelerationZ(){ return isI2C('imu') ? Math.round(accel()[2] * 1000) : 0; }
+  getGyroscopeX(){ return isI2C('imu') ? Math.round(gyro()[0]) : 0; }
+  getGyroscopeY(){ return isI2C('imu') ? Math.round(gyro()[1]) : 0; }
+  getGyroscopeZ(){ return isI2C('imu') ? Math.round(gyro()[2]) : 0; }
+  getAcceleration(x, y, z){ setRef(x, this.getAccelerationX()); setRef(y, this.getAccelerationY()); setRef(z, this.getAccelerationZ()); }
+  getGyroscope(x, y, z){ setRef(x, this.getGyroscopeX()); setRef(y, this.getGyroscopeY()); setRef(z, this.getGyroscopeZ()); }
+  getTemperature(){ return 24 + Math.random() * .2; }
+}
+function magField() { // earth field (~45 uT) seen by a sensor turned to V.heading
+  const hd = V.heading * Math.PI / 180, n = () => (Math.random() - .5) * 1.5;
+  return [Math.round(25 * Math.cos(hd) + n()), Math.round(-25 * Math.sin(hd) + n()), Math.round(-38 + n())];
+}
+class AK09918 {
+  constructor(){ return lib(this, 'AK09918'); }
+  initialize(){ return isI2C('imu') ? 0 : 1; } switchMode(){ return 0; } reset(){ return 0; } selfTest(){ return 0; }
+  isDataReady(){ return isI2C('imu') ? 0 : 1; }
+  getDeviceID(){ return 0x0C; }
+  getData(x, y, z){ if (!isI2C('imu')) return 1; const m = magField(); setRef(x, m[0]); setRef(y, m[1]); setRef(z, m[2]); return 0; }
+  getRawData(x, y, z){ return this.getData(x, y, z); }
+}
+class LIS3DHTR {
+  constructor(){ return lib(this, 'LIS3DHTR'); }
+  begin(){} setOutputDataRate(){} setFullScaleRange(){} setHighSolution(){}
+  isConnection(){ return isI2C('imu'); }
+  getAccelerationX(){ return isI2C('imu') ? accel()[0] : 0; } getAccelerationY(){ return isI2C('imu') ? accel()[1] : 0; } getAccelerationZ(){ return isI2C('imu') ? accel()[2] : 0; }
+  getAcceleration(x, y, z){ }
+}
+
+const chr = c => typeof c === 'number' ? String.fromCharCode(c) : '' + c;
+const AString = (v, b) => v === undefined ? '' : typeof v === 'number' ? fmt(v, b) : '' + v;
+Object.assign(String.prototype, {
+  toInt(){ return parseInt(this) || 0; }, toFloat(){ return parseFloat(this) || 0; }, toDouble(){ return parseFloat(this) || 0; },
+  equals(o){ return '' + this === '' + o; }, equalsIgnoreCase(o){ return this.toLowerCase() === ('' + o).toLowerCase(); },
+  c_str(){ return '' + this; }, compareTo(o){ return this < o ? -1 : this > o ? 1 : 0; },
+});
+const randInt = (a, b) => b === undefined ? Math.floor(Math.random() * a) : a + Math.floor(Math.random() * (b - a));
+
+const api = {
+  HIGH:1, LOW:0, INPUT:0, OUTPUT:1, INPUT_PULLUP:2, LED_BUILTIN:13, A0:14, A1:15, A2:16, A3:17, A4:18, A5:19,
+  PI:Math.PI, HALF_PI:Math.PI/2, TWO_PI:Math.PI*2, DEG_TO_RAD:Math.PI/180, RAD_TO_DEG:180/Math.PI, EULER:Math.E,
+  DEC:10, HEX:16, OCT:8, BIN:2, CHANGE:1, FALLING:2, RISING:3, NULL:null, nullptr:null,
+  NEO_GRB:0, NEO_RGB:0, NEO_GRBW:0, NEO_RGBW:0, NEO_KHZ800:0, NEO_KHZ400:0,
+  DHT11:11, DHT21:21, DHT22:22, DHT20:20, AM2301:21, I2C_MODE:0, SPI_MODE:1, WHITE:0, RED:1, GREEN:2, BLUE:3,
+  LIS3DHTR_DATARATE_50HZ:0, LIS3DHTR_RANGE_2G:0,
+  D0:0, D1:1, D2:2, D3:3, D4:4, D5:5, D6:6, D7:7, D8:8, D9:9, D10:10, D11:11, D12:12, D13:13,
+  AK09918_ERR_OK:0, AK09918_POWER_DOWN:0, AK09918_NORMAL:1, AK09918_CONTINUOUS_10HZ:2, AK09918_CONTINUOUS_20HZ:4, AK09918_CONTINUOUS_50HZ:6, AK09918_CONTINUOUS_100HZ:8,
+  ICM_20600_LOW_POWER:0, ICM_20600_LOW_NOISE:1, ICM_20600_SIX_AXIS:2, RANGE_2G:0, RANGE_4G:1, RANGE_8G:2, RANGE_16G:3, RANGE_250_DPS:0, RANGE_500_DPS:1,
+  pinMode(p, m){ st.mode[+p] = m; },
+  digitalWrite(p, v){ setOut(+p, v ? 1 : 0); },
+  digitalRead(p){ return readDigital(+p); },
+  analogRead(p){ p = +p; if (p >= 0 && p <= 5) p += 14;
+    const v = inputAt(p); const max = 2 ** st.adcBits - 1;
+    return v === null ? 0 : Math.round(clamp(v, 0, 1023) / 1023 * max); },
+  analogWrite(p, v){ setOut(+p, clamp(v|0, 0, 4095)); },
+  analogReadResolution(b){ st.adcBits = clamp(b|0, 1, 14); }, analogWriteResolution(){}, analogReference(){},
+  delay, delayMicroseconds(){}, millis: () => Math.floor(performance.now() - t0), micros: () => Math.floor((performance.now() - t0) * 1000),
+  tone(p, f, d){ p = +p; st.tones[p] = +f; updateSound();
+    if (d) { const id = Symbol(); st.tones['t' + p] = id; setTimeout(() => { if (st.tones['t' + p] === id) { st.tones[p] = 0; updateSound(); } }, d); } },
+  noTone(p){ st.tones[+p] = 0; st.tones['t' + p] = null; updateSound(); },
+  pulseIn: () => 0, shiftOut(){}, yield: __yield,
+  map: (x, a, b, c, d) => Math.trunc((x - a) * (d - c) / (b - a)) + c,
+  constrain: clamp, min: Math.min, max: Math.max, abs: Math.abs, fabs: Math.abs, pow: Math.pow, sqrt: Math.sqrt, sq: x => x * x,
+  sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2,
+  exp: Math.exp, log: Math.log, log10: Math.log10, floor: Math.floor, ceil: Math.ceil, round: Math.round, fmod: (a, b) => a % b,
+  isnan: Number.isNaN, isinf: x => !Number.isFinite(x) && !Number.isNaN(x),
+  random: randInt, randomSeed(){},
+  bitRead: (x, n) => (x >> n) & 1, bitSet: (x, n) => x | (1 << n), bitClear: (x, n) => x & ~(1 << n), bitWrite: (x, n, b) => b ? x | (1 << n) : x & ~(1 << n),
+  bit: n => 1 << n, lowByte: x => x & 255, highByte: x => (x >> 8) & 255,
+  isDigit: c => /^[0-9]$/.test(chr(c)), isAlpha: c => /^[a-z]$/i.test(chr(c)), isAlphaNumeric: c => /^[a-z0-9]$/i.test(chr(c)),
+  isSpace: c => /^\s$/.test(chr(c)), isUpperCase: c => /^[A-Z]$/.test(chr(c)), isLowerCase: c => /^[a-z]$/.test(chr(c)),
+  attachInterrupt(p, fn, mode){ st.irq[+p] = { fn, mode }; lastDigital[+p] = readDigital(+p); },
+  detachInterrupt(p){ delete st.irq[+p]; }, digitalPinToInterrupt: p => +p, interrupts(){}, noInterrupts(){},
+  Serial, Serial1: Serial, Wire, String: AString,
+  __int: x => typeof x === 'string' ? (x.length === 1 ? x.charCodeAt(0) : parseInt(x) || 0) : Math.trunc(+x) || 0,
+  __chr: x => typeof x === 'number' ? String.fromCharCode(x) : x,
+  __arr: function mk(n, ...r){ return Array.from({ length: n|0 }, () => r.length ? mk(...r) : 0); },
+  __sizeof: x => Array.isArray(x) ? x.length * 4 : typeof x === 'string' ? x.length + 1 : 4,
+  __ref: (get, set) => ({ get, set }),
+  __yield, rgb_lcd, Servo, Adafruit_NeoPixel, DHT, LSM6DS3, LIS3DHTR, AHT20, ICM20600, AK09918,
+};
+
+const AsyncFunction = (async () => {}).constructor;
+let LINE_OFF = 2;
+new AsyncFunction('__api', 'with(__api){throw new Error("x")\n}')({}).catch(e => {
+  const m = String(e.stack).match(/(?:<anonymous>|Function):(\d+):\d+/); if (m) LINE_OFF = +m[1] - 1;
+});
+function errLine(e) {
+  const m = String(e && e.stack).match(/(?:<anonymous>|Function):(\d+):\d+/);
+  return m ? +m[1] - LINE_OFF : 0;
+}
+function findSyntaxLine(js) { // a <script> tag reports the line of a syntax error, Function() does not
+  let line = 0;
+  const h = ev => { line = ev.lineno; ev.preventDefault(); };
+  window.addEventListener('error', h);
+  const sc = document.createElement('script');
+  sc.textContent = 'window.__chk=async function(__api){with(__api){' + js + '\n}}';
+  document.head.appendChild(sc); sc.remove();
+  window.removeEventListener('error', h);
+  return line;
+}
+function onErr(e) {
+  if (e === STOP) return;
+  const ln = errLine(e);
+  let msg = e && e.message || String(e);
+  const m = msg.match(/^(\w+) is not defined$/);
+  if (m) msg = `'${m[1]}' is not declared (typo or missing variable?)`;
+  else if (/is not a function/.test(msg)) msg += ' (does this function exist?)';
+  sysMsg('ERROR' + (ln > 0 ? ' on line ' + ln : '') + ': ' + msg);
+  if (ln > 0) gotoLine(ln);
+  stop();
+}
+
+function resetBoard() {
+  st.out = {}; st.mode = {}; st.adcBits = 10; st.servos = []; st.strips = []; st.tones = {}; st.irq = {}; lastDigital = {};
+  lcdReset(); rx = ''; warned.clear();
+}
+
+// ===== Real C++ check: clang (LLVM 22, compiled to WebAssembly) checks the sketch before it runs =====
+// The sketch is checked against the headers below, which declare the Arduino API and the kit's libraries
+// with their real signatures. Nothing is built: clang only reports errors and warnings (-fsyntax-only).
+const CLANG_URL = 'https://cdn.jsdelivr.net/npm/@yowasp/clang@22.0.0-git20542-10/gen/bundle.js';
+const HEADERS = {
+'stdint.h': `#pragma once
+typedef signed char int8_t; typedef unsigned char uint8_t; typedef short int16_t; typedef unsigned short uint16_t;
+typedef int int32_t; typedef unsigned int uint32_t; typedef long long int64_t; typedef unsigned long long uint64_t;
+typedef int intptr_t; typedef unsigned int uintptr_t;
+#define INT8_MAX 127
+#define UINT8_MAX 255
+#define INT16_MAX 32767
+#define UINT16_MAX 65535
+#define INT32_MAX 2147483647
+#define UINT32_MAX 4294967295U`,
+'stddef.h': `#pragma once
+typedef __SIZE_TYPE__ size_t; typedef __PTRDIFF_TYPE__ ptrdiff_t;
+#ifndef NULL
+#define NULL 0
+#endif`,
+'stdbool.h': `#pragma once`,
+'stdarg.h': `#pragma once
+typedef __builtin_va_list va_list;
+#define va_start(ap, last) __builtin_va_start(ap, last)
+#define va_arg(ap, type) __builtin_va_arg(ap, type)
+#define va_end(ap) __builtin_va_end(ap)
+#define va_copy(d, s) __builtin_va_copy(d, s)`,
+'math.h': `#pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
+double sin(double); double cos(double); double tan(double); double asin(double); double acos(double); double atan(double); double atan2(double, double);
+double sinh(double); double cosh(double); double tanh(double); double exp(double); double log(double); double log10(double); double log2(double);
+double pow(double, double); double sqrt(double); double cbrt(double); double fabs(double); double floor(double); double ceil(double); double round(double);
+double trunc(double); double fmod(double, double); double hypot(double, double); double fmin(double, double); double fmax(double, double);
+float sinf(float); float cosf(float); float sqrtf(float); float powf(float, float); float fabsf(float); float roundf(float); float floorf(float); float ceilf(float);
+long lround(double); int isnan(double); int isinf(double);
+#ifdef __cplusplus
+}
+#endif
+#define M_PI 3.14159265358979323846
+#define NAN (__builtin_nanf(""))
+#define INFINITY (__builtin_inff())`,
+'stdlib.h': `#pragma once
+#include <stddef.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+int atoi(const char *); long atol(const char *); double atof(const char *); long strtol(const char *, char **, int); double strtod(const char *, char **);
+void *malloc(size_t); void *calloc(size_t, size_t); void *realloc(void *, size_t); void free(void *);
+char *itoa(int, char *, int); char *ltoa(long, char *, int); char *dtostrf(double, signed char, unsigned char, char *);
+int rand(void); void srand(unsigned int); long labs(long);
+#ifdef __cplusplus
+}
+#endif`,
+'string.h': `#pragma once
+#include <stddef.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+size_t strlen(const char *); int strcmp(const char *, const char *); int strncmp(const char *, const char *, size_t);
+char *strcpy(char *, const char *); char *strncpy(char *, const char *, size_t); char *strcat(char *, const char *); char *strncat(char *, const char *, size_t);
+char *strchr(const char *, int); char *strrchr(const char *, int); char *strstr(const char *, const char *); char *strtok(char *, const char *);
+void *memset(void *, int, size_t); void *memcpy(void *, const void *, size_t); void *memmove(void *, const void *, size_t); int memcmp(const void *, const void *, size_t);
+#ifdef __cplusplus
+}
+#endif`,
+'stdio.h': `#pragma once
+#include <stddef.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+int sprintf(char *, const char *, ...); int vsnprintf(char *, size_t, const char *, __builtin_va_list); int snprintf(char *, size_t, const char *, ...); int sscanf(const char *, const char *, ...);
+#ifdef __cplusplus
+}
+#endif`,
+'ctype.h': `#pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
+int isdigit(int); int isalpha(int); int isalnum(int); int isspace(int); int isupper(int); int islower(int); int toupper(int); int tolower(int);
+#ifdef __cplusplus
+}
+#endif`,
+'Arduino.h': `#pragma once
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
+typedef bool boolean; typedef uint8_t byte; typedef unsigned int word; typedef int pin_size_t;
+// the emulator inserts calls to this inside loops, so a busy loop never freezes the page
+extern "C" __attribute__((import_module("env"), import_name("yield"))) void __emu_yield(void);
+#define HIGH 0x1
+#define LOW 0x0
+#define INPUT 0x0
+#define OUTPUT 0x1
+#define INPUT_PULLUP 0x2
+#define INPUT_PULLDOWN 0x3
+#define LED_BUILTIN 13
+#define PI 3.1415926535897932384626433832795
+#define HALF_PI 1.5707963267948966192313216916398
+#define TWO_PI 6.283185307179586476925286766559
+#define DEG_TO_RAD 0.017453292519943295769236907684886
+#define RAD_TO_DEG 57.295779513082320876798154814105
+#define EULER 2.718281828459045235360287471352
+#define CHANGE 1
+#define FALLING 2
+#define RISING 3
+#define DEC 10
+#define HEX 16
+#define OCT 8
+#define BIN 2
+#define LSBFIRST 0
+#define MSBFIRST 1
+#define PROGMEM
+#define F(s) (reinterpret_cast<const __FlashStringHelper *>(s))
+static const uint8_t A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
+static const uint8_t D0 = 0, D1 = 1, D2 = 2, D3 = 3, D4 = 4, D5 = 5, D6 = 6, D7 = 7, D8 = 8, D9 = 9, D10 = 10, D11 = 11, D12 = 12, D13 = 13;
+template <class T, class L> auto min(const T &a, const L &b) -> decltype((b < a) ? b : a) { return (b < a) ? b : a; }
+template <class T, class L> auto max(const T &a, const L &b) -> decltype((b < a) ? b : a) { return (a < b) ? b : a; }
+#define abs(x) ((x) > 0 ? (x) : -(x))
+#define constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
+#define radians(deg) ((deg) * DEG_TO_RAD)
+#define degrees(rad) ((rad) * RAD_TO_DEG)
+#define sq(x) ((x) * (x))
+#define lowByte(w) ((uint8_t)((w) & 0xff))
+#define highByte(w) ((uint8_t)((w) >> 8))
+#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+#define bitSet(value, bit) ((value) |= (1UL << (bit)))
+#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
+#define bitWrite(value, bit, bitvalue) ((bitvalue) ? bitSet(value, bit) : bitClear(value, bit))
+#define bit(b) (1UL << (b))
+#define digitalPinToInterrupt(p) (p)
+void pinMode(pin_size_t pin, int mode); void digitalWrite(pin_size_t pin, int val); int digitalRead(pin_size_t pin);
+int analogRead(pin_size_t pin); void analogWrite(pin_size_t pin, int val); void analogReadResolution(int bits); void analogWriteResolution(int bits); void analogReference(uint8_t mode);
+unsigned long millis(void); unsigned long micros(void); void delay(unsigned long ms); void delayMicroseconds(unsigned int us);
+void tone(unsigned int pin, unsigned int frequency, unsigned long duration = 0); void noTone(uint8_t pin);
+unsigned long pulseIn(uint8_t pin, uint8_t state, unsigned long timeout = 1000000L);
+void shiftOut(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t val);
+long map(long x, long in_min, long in_max, long out_min, long out_max);
+long random(long howbig); long random(long howsmall, long howbig); void randomSeed(unsigned long seed);
+void attachInterrupt(pin_size_t interruptNum, void (*userFunc)(void), int mode); void detachInterrupt(pin_size_t interruptNum);
+void interrupts(void); void noInterrupts(void); void yield(void);
+bool isDigit(int c); bool isAlpha(int c); bool isAlphaNumeric(int c); bool isSpace(int c); bool isWhitespace(int c);
+bool isUpperCase(int c); bool isLowerCase(int c); bool isPunct(int c); bool isPrintable(int c); bool isAscii(int c); bool isControl(int c); bool isHexadecimalDigit(int c);
+class __FlashStringHelper;
+class String {
+public:
+  String(const char *cstr = ""); String(const String &str); String(const __FlashStringHelper *str);
+  explicit String(char c); explicit String(unsigned char, unsigned char base = 10); explicit String(int, unsigned char base = 10);
+  explicit String(unsigned int, unsigned char base = 10); explicit String(long, unsigned char base = 10); explicit String(unsigned long, unsigned char base = 10);
+  explicit String(float, unsigned char decimalPlaces = 2); explicit String(double, unsigned char decimalPlaces = 2);
+  String &operator=(const String &rhs); String &operator=(const char *cstr);
+  bool concat(const String &str); bool concat(const char *cstr); bool concat(char c); bool concat(unsigned char num); bool concat(int num);
+  bool concat(unsigned int num); bool concat(long num); bool concat(unsigned long num); bool concat(float num); bool concat(double num);
+  String &operator+=(const String &rhs); String &operator+=(const char *cstr); String &operator+=(char c); String &operator+=(unsigned char num);
+  String &operator+=(int num); String &operator+=(unsigned int num); String &operator+=(long num); String &operator+=(unsigned long num);
+  String &operator+=(float num); String &operator+=(double num);
+  friend String operator+(const String &a, const String &b); friend String operator+(const String &a, const char *b); friend String operator+(const char *a, const String &b);
+  friend String operator+(const String &a, char b); friend String operator+(const String &a, unsigned char b); friend String operator+(const String &a, int b);
+  friend String operator+(const String &a, unsigned int b); friend String operator+(const String &a, long b); friend String operator+(const String &a, unsigned long b);
+  friend String operator+(const String &a, float b); friend String operator+(const String &a, double b);
+  unsigned int length(void) const; int compareTo(const String &s) const; bool equals(const String &s) const; bool equals(const char *cstr) const;
+  bool equalsIgnoreCase(const String &s) const; bool startsWith(const String &prefix) const; bool startsWith(const String &prefix, unsigned int offset) const; bool endsWith(const String &suffix) const;
+  bool operator==(const String &rhs) const; bool operator==(const char *cstr) const; bool operator!=(const String &rhs) const; bool operator!=(const char *cstr) const;
+  bool operator<(const String &rhs) const; bool operator>(const String &rhs) const; bool operator<=(const String &rhs) const; bool operator>=(const String &rhs) const;
+  char charAt(unsigned int index) const; void setCharAt(unsigned int index, char c); char operator[](unsigned int index) const; char &operator[](unsigned int index);
+  void getBytes(unsigned char *buf, unsigned int bufsize, unsigned int index = 0) const; void toCharArray(char *buf, unsigned int bufsize, unsigned int index = 0) const;
+  const char *c_str() const; char *begin(); char *end();
+  int indexOf(char ch) const; int indexOf(char ch, unsigned int fromIndex) const; int indexOf(const String &str) const; int indexOf(const String &str, unsigned int fromIndex) const;
+  int lastIndexOf(char ch) const; int lastIndexOf(char ch, unsigned int fromIndex) const; int lastIndexOf(const String &str) const; int lastIndexOf(const String &str, unsigned int fromIndex) const;
+  String substring(unsigned int beginIndex) const; String substring(unsigned int beginIndex, unsigned int endIndex) const;
+  void replace(char find, char replace); void replace(const String &find, const String &replace); void remove(unsigned int index); void remove(unsigned int index, unsigned int count);
+  void toLowerCase(void); void toUpperCase(void); void trim(void); bool reserve(unsigned int size);
+  long toInt(void) const; float toFloat(void) const; double toDouble(void) const;
+  ~String();
+private:
+  char *buf; unsigned int cap, len;
+  void init(); bool grow(unsigned int size); String &copy(const char *cstr, unsigned int length); bool append(const char *cstr, unsigned int length);
+};
+class Print {
+public:
+  virtual size_t write(uint8_t) = 0; size_t write(const char *str); virtual size_t write(const uint8_t *buffer, size_t size); size_t write(const char *buffer, size_t size);
+  size_t print(const __FlashStringHelper *); size_t print(const String &); size_t print(const char[]); size_t print(char); size_t print(unsigned char, int = DEC);
+  size_t print(int, int = DEC); size_t print(unsigned int, int = DEC); size_t print(long, int = DEC); size_t print(unsigned long, int = DEC);
+  size_t print(long long, int = DEC); size_t print(unsigned long long, int = DEC); size_t print(double, int = 2);
+  size_t println(const __FlashStringHelper *); size_t println(const String &s); size_t println(const char[]); size_t println(char); size_t println(unsigned char, int = DEC);
+  size_t println(int, int = DEC); size_t println(unsigned int, int = DEC); size_t println(long, int = DEC); size_t println(unsigned long, int = DEC);
+  size_t println(long long, int = DEC); size_t println(unsigned long long, int = DEC); size_t println(double, int = 2); size_t println(void);
+  int printf(const char *format, ...) __attribute__((format(printf, 2, 3)));
+  virtual void flush();
+protected:
+  size_t printNumber(unsigned long long n, uint8_t base); size_t printFloat(double number, int digits);
+};
+class Stream : public Print {
+public:
+  virtual int available() = 0; virtual int read() = 0; virtual int peek() = 0;
+  void setTimeout(unsigned long timeout); bool find(const char *target); bool findUntil(const char *target, const char *terminator);
+  long parseInt(); float parseFloat(); size_t readBytes(char *buffer, size_t length); size_t readBytesUntil(char terminator, char *buffer, size_t length);
+  String readString(); String readStringUntil(char terminator);
+protected:
+  unsigned long _timeout = 1000; int timedRead(); int timedPeek(); int peekNextDigit(bool detectDecimal);
+};
+class HardwareSerial : public Stream {
+public:
+  void begin(unsigned long baud); void begin(unsigned long baud, uint16_t config); void end();
+  int available(void); int peek(void); int read(void); void flush(void); int availableForWrite(void);
+  size_t write(uint8_t); using Print::write; operator bool();
+};
+extern HardwareSerial Serial; extern HardwareSerial Serial1;
+void setup(void); void loop(void);`,
+'Wire.h': `#pragma once
+#include <Arduino.h>
+class TwoWire : public Stream {
+public:
+  void begin(); void begin(uint8_t address); void end(); void setClock(uint32_t freq);
+  void beginTransmission(uint8_t address); uint8_t endTransmission(bool stopBit = true);
+  size_t requestFrom(uint8_t address, size_t len, bool stopBit = true);
+  size_t write(uint8_t data); size_t write(const uint8_t *data, size_t len); using Print::write;
+  int available(); int read(); int peek(); void flush();
+  void onReceive(void (*)(int)); void onRequest(void (*)(void));
+};
+extern TwoWire Wire;`,
+'Servo.h': `#pragma once
+#include <Arduino.h>
+class Servo {
+public:
+  Servo(); uint8_t attach(int pin); uint8_t attach(int pin, int min, int max); void detach();
+  void write(int value); void writeMicroseconds(int value); int read(); int readMicroseconds(); bool attached();
+private:
+  int _id;
+};`,
+'Adafruit_NeoPixel.h': `#pragma once
+#include <Arduino.h>
+typedef uint16_t neoPixelType;
+#define NEO_RGB ((0 << 6) | (0 << 4) | (1 << 2) | (2))
+#define NEO_RBG ((0 << 6) | (0 << 4) | (2 << 2) | (1))
+#define NEO_GRB ((1 << 6) | (1 << 4) | (0 << 2) | (2))
+#define NEO_GBR ((2 << 6) | (2 << 4) | (0 << 2) | (1))
+#define NEO_BRG ((1 << 6) | (1 << 4) | (2 << 2) | (0))
+#define NEO_BGR ((2 << 6) | (2 << 4) | (1 << 2) | (0))
+#define NEO_RGBW ((3 << 6) | (0 << 4) | (1 << 2) | (2))
+#define NEO_GRBW ((3 << 6) | (1 << 4) | (0 << 2) | (2))
+#define NEO_KHZ800 0x0000
+#define NEO_KHZ400 0x0100
+class Adafruit_NeoPixel {
+public:
+  Adafruit_NeoPixel(uint16_t n, int16_t pin = 6, neoPixelType type = NEO_GRB + NEO_KHZ800); Adafruit_NeoPixel(void);
+  void begin(void); void show(void); void setPin(int16_t p); void updateLength(uint16_t n); void updateType(neoPixelType t);
+  void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b); void setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b, uint8_t w);
+  void setPixelColor(uint16_t n, uint32_t c); void fill(uint32_t c = 0, uint16_t first = 0, uint16_t count = 0);
+  void setBrightness(uint8_t b); void clear(void); bool canShow(void);
+  uint8_t getBrightness(void) const; int16_t getPin(void) const; uint16_t numPixels(void) const; uint32_t getPixelColor(uint16_t n) const; uint8_t *getPixels(void) const;
+  static uint32_t Color(uint8_t r, uint8_t g, uint8_t b); static uint32_t Color(uint8_t r, uint8_t g, uint8_t b, uint8_t w);
+  static uint32_t ColorHSV(uint16_t hue, uint8_t sat = 255, uint8_t val = 255);
+  static uint8_t gamma8(uint8_t x); static uint32_t gamma32(uint32_t x); static uint8_t sine8(uint8_t x);
+  void rainbow(uint16_t first_hue = 0, int8_t reps = 1, uint8_t saturation = 255, uint8_t brightness = 255, bool gammify = true);
+private:
+  int _id;
+};`,
+'rgb_lcd.h': `#pragma once
+#include <Arduino.h>
+#define WHITE 0
+#define RED 1
+#define GREEN 2
+#define BLUE 3
+#define LCD_5x8DOTS 0x00
+#define LCD_5x10DOTS 0x04
+class rgb_lcd : public Print {
+public:
+  rgb_lcd();
+  void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
+  void clear(); void home(); void noDisplay(); void display(); void noBlink(); void blink(); void noCursor(); void cursor();
+  void scrollDisplayLeft(); void scrollDisplayRight(); void leftToRight(); void rightToLeft(); void autoscroll(); void noAutoscroll();
+  void createChar(uint8_t location, uint8_t charmap[]); void setCursor(uint8_t col, uint8_t row);
+  virtual size_t write(uint8_t value); using Print::write; void command(uint8_t value);
+  void setRGB(unsigned char r, unsigned char g, unsigned char b); void setPWM(unsigned char color, unsigned char pwm);
+  void setColor(unsigned char color); void setColorAll(); void setColorWhite(); void blinkLED(void); void noBlinkLED(void);
+};`,
+'AHT20.h': `#pragma once
+#include <Arduino.h>
+class AHT20 {
+public:
+  void begin(); bool startSensor(); bool getSensor(float *h, float *t); bool getTemperature(float *t); bool getHumidity(float *h);
+};`,
+'ICM20600.h': `#pragma once
+#include <Arduino.h>
+enum icm20600_power_type_t { ICM_SLEEP_MODE = 0, ICM_STANDYBY_MODE, ICM_ACC_LOW_POWER, ICM_ACC_LOW_NOISE, ICM_GYRO_LOW_POWER, ICM_GYRO_LOW_NOISE, ICM_6AXIS_LOW_POWER, ICM_6AXIS_LOW_NOISE };
+enum acc_scale_type_t { RANGE_2G = 0, RANGE_4G, RANGE_8G, RANGE_16G };
+enum gyro_scale_type_t { RANGE_250_DPS = 0, RANGE_500_DPS, RANGE_1K_DPS, RANGE_2K_DPS };
+class ICM20600 {
+public:
+  ICM20600(bool AD0 = false); void initialize(); uint8_t getDeviceID(); void reset();
+  void setPowerMode(icm20600_power_type_t mode); void setAccScaleRange(acc_scale_type_t range); void setGyroScaleRange(gyro_scale_type_t range);
+  void setAccOutputDataRate(int odr); void setGyroOutputDataRate(int odr); void setSampleRateDivier(uint8_t div);
+  void getAcceleration(int16_t *x, int16_t *y, int16_t *z); int16_t getAccelerationX(void); int16_t getAccelerationY(void); int16_t getAccelerationZ(void);
+  void getGyroscope(int16_t *x, int16_t *y, int16_t *z); int16_t getGyroscopeX(void); int16_t getGyroscopeY(void); int16_t getGyroscopeZ(void);
+  int16_t getTemperature(void);
+};`,
+'AK09918.h': `#pragma once
+#include <Arduino.h>
+enum AK09918_err_type_t { AK09918_ERR_OK = 0, AK09918_ERR_DOR = 1, AK09918_ERR_NOT_RDY = 2, AK09918_ERR_TIMEOUT = 3, AK09918_ERR_SELFTEST_FAILED = 4,
+  AK09918_ERR_OVERFLOW = 5, AK09918_ERR_WRITE_FAILED = 6, AK09918_ERR_READ_FAILED = 7 };
+enum AK09918_mode_type_t { AK09918_POWER_DOWN = 0x00, AK09918_NORMAL = 0x01, AK09918_CONTINUOUS_10HZ = 0x02, AK09918_CONTINUOUS_20HZ = 0x04,
+  AK09918_CONTINUOUS_50HZ = 0x06, AK09918_CONTINUOUS_100HZ = 0x08, AK09918_SELF_TEST = 0x10 };
+class AK09918 {
+public:
+  AK09918(); AK09918_err_type_t initialize(AK09918_mode_type_t mode = AK09918_POWER_DOWN);
+  AK09918_err_type_t isDataReady(); AK09918_err_type_t isDataSkip();
+  AK09918_err_type_t getData(int32_t *axis_x, int32_t *axis_y, int32_t *axis_z); AK09918_err_type_t getRawData(int32_t *axis_x, int32_t *axis_y, int32_t *axis_z);
+  AK09918_mode_type_t getMode(); AK09918_err_type_t switchMode(AK09918_mode_type_t mode); AK09918_err_type_t selfTest(); AK09918_err_type_t reset();
+  const char *strError(AK09918_err_type_t err); uint16_t getDeviceID();
+};`,
+'DHT.h': `#pragma once
+#include <Arduino.h>
+#define DHT11 11
+#define DHT12 12
+#define DHT20 20
+#define DHT21 21
+#define DHT22 22
+#define AM2301 21
+class DHT {
+public:
+  DHT(uint8_t pin, uint8_t type, uint8_t count = 6); DHT(uint8_t type);
+  void begin(void); float readTemperature(bool isFahrenheit = false); float readHumidity(void);
+  int readTempAndHumidity(float *data); int readTargetData(float *data); float convertCtoF(float); float computeHeatIndex(float temperature, float percentHumidity, bool isFahrenheit = true);
+};`,
+'LSM6DS3.h': `#pragma once
+#include <Arduino.h>
+#define I2C_MODE 0
+#define SPI_MODE 1
+typedef int status_t;
+class LSM6DS3 {
+public:
+  LSM6DS3(uint8_t busType = I2C_MODE, uint8_t inputArg = 0x6A); status_t begin();
+  int16_t readRawAccelX(void); int16_t readRawAccelY(void); int16_t readRawAccelZ(void); int16_t readRawGyroX(void); int16_t readRawGyroY(void); int16_t readRawGyroZ(void);
+  float readFloatAccelX(void); float readFloatAccelY(void); float readFloatAccelZ(void); float readFloatGyroX(void); float readFloatGyroY(void); float readFloatGyroZ(void);
+  float readTempC(void); float readTempF(void);
+};`,
+'LIS3DHTR.h': `#pragma once
+#include <Arduino.h>
+#include <Wire.h>
+enum odr_type_t { LIS3DHTR_DATARATE_POWERDOWN = 0, LIS3DHTR_DATARATE_1HZ, LIS3DHTR_DATARATE_10HZ, LIS3DHTR_DATARATE_25HZ, LIS3DHTR_DATARATE_50HZ, LIS3DHTR_DATARATE_100HZ, LIS3DHTR_DATARATE_200HZ, LIS3DHTR_DATARATE_400HZ };
+enum scale_type_t { LIS3DHTR_RANGE_2G = 0, LIS3DHTR_RANGE_4G, LIS3DHTR_RANGE_8G, LIS3DHTR_RANGE_16G };
+extern "C" __attribute__((import_module("env"), import_name("imuAccel"))) float emu_imu_accel(int axis);
+extern "C" __attribute__((import_module("env"), import_name("imuConnected"))) int emu_imu_connected(void);
+template <class T> class LIS3DHTR {
+public:
+  void begin(T &comm = Wire, uint8_t address = 0x19) {} bool isConnection(void) { return emu_imu_connected(); }
+  void setOutputDataRate(odr_type_t odr) {} void setFullScaleRange(scale_type_t range) {} void setHighSolution(bool enable) {} void setPowerMode(int mode) {}
+  float getAccelerationX(void) { return emu_imu_accel(0); } float getAccelerationY(void) { return emu_imu_accel(1); } float getAccelerationZ(void) { return emu_imu_accel(2); }
+  void getAcceleration(float *x, float *y, float *z) { *x = getAccelerationX(); *y = getAccelerationY(); *z = getAccelerationZ(); }
+  int16_t getTemperature(void) { return 24; }
+};`,
+'SPI.h': `#pragma once
+#include <Arduino.h>`,
+};
+HEADERS['Grove_Temperature_And_Humidity_Sensor.h'] = '#pragma once\n#include <DHT.h>';
+HEADERS['avr/pgmspace.h'] = '#pragma once';
+
+// The Arduino core and the kit's libraries, in C++. Compiled once into core.o and linked with every sketch.
+// Hardware access goes through the "env" imports, which the page implements (see wasmImports).
+const CORE_CPP = String.raw`#include <Arduino.h>
+#include <stdarg.h>
+#include <Wire.h>
+#include <Servo.h>
+#include <Adafruit_NeoPixel.h>
+#include <rgb_lcd.h>
+#include <AHT20.h>
+#include <ICM20600.h>
+#include <AK09918.h>
+#include <DHT.h>
+#include <LSM6DS3.h>
+
+#define IMP(n) __attribute__((import_module("env"), import_name(#n)))
+extern "C" {
+IMP(pinMode) void emu_pinMode(int, int);
+IMP(digitalWrite) void emu_digitalWrite(int, int);
+IMP(digitalRead) int emu_digitalRead(int);
+IMP(analogRead) int emu_analogRead(int);
+IMP(analogWrite) void emu_analogWrite(int, int);
+IMP(analogReadResolution) void emu_adcBits(int);
+IMP(millis) unsigned long emu_millis(void);
+IMP(micros) unsigned long emu_micros(void);
+IMP(delay) void emu_delay(unsigned long);
+IMP(tone) void emu_tone(int, unsigned, unsigned long);
+IMP(noTone) void emu_noTone(int);
+IMP(random) double emu_random(void);
+IMP(attachInterrupt) void emu_attach(int pin, int fn, int mode);
+IMP(detachInterrupt) void emu_detach(int pin);
+IMP(serialWrite) void emu_serialWrite(const uint8_t *p, size_t n);
+IMP(serialAvailable) int emu_serialAvailable(void);
+IMP(serialRead) int emu_serialRead(void);
+IMP(serialPeek) int emu_serialPeek(void);
+IMP(math1) double emu_math1(int op, double x);
+IMP(math2) double emu_math2(int op, double x, double y);
+IMP(servo) int emu_servo(int op, int id, int a, int b, int c);
+IMP(neo) int emu_neo(int op, int id, int a, int b, int c);
+IMP(lcd) void emu_lcd(int op, int a, int b, int c);
+IMP(aht) int emu_aht(float *h, float *t);
+IMP(dht) int emu_dht(float *h, float *t);
+IMP(imuAccel) float emu_imu_accel(int axis);
+IMP(imuGyro) float emu_imu_gyro(int axis);
+IMP(imuMag) int emu_imu_mag(int32_t *xyz);
+IMP(imuConnected) int emu_imu_connected(void);
+IMP(abort) void emu_abort(const char *msg);
+}
+
+/* ---------- C library ---------- */
+extern "C" {
+void *memset(void *d, int c, size_t n) { volatile unsigned char *p = (unsigned char *)d; while (n--) *p++ = (unsigned char)c; return d; }
+void *memcpy(void *d, const void *s, size_t n) { volatile unsigned char *p = (unsigned char *)d; const unsigned char *q = (const unsigned char *)s; while (n--) *p++ = *q++; return d; }
+void *memmove(void *d, const void *s, size_t n) {
+  volatile unsigned char *p = (unsigned char *)d; const unsigned char *q = (const unsigned char *)s;
+  if (p < q) { while (n--) *p++ = *q++; } else { p += n; q += n; while (n--) *--p = *--q; }
+  return d;
+}
+int memcmp(const void *a, const void *b, size_t n) { const unsigned char *p = (const unsigned char *)a, *q = (const unsigned char *)b; for (; n--; p++, q++) if (*p != *q) return *p - *q; return 0; }
+size_t strlen(const char *s) { size_t n = 0; while (s[n]) n++; return n; }
+int strcmp(const char *a, const char *b) { while (*a && *a == *b) { a++; b++; } return (unsigned char)*a - (unsigned char)*b; }
+int strncmp(const char *a, const char *b, size_t n) { for (; n; n--, a++, b++) { if (*a != *b || !*a) return (unsigned char)*a - (unsigned char)*b; } return 0; }
+char *strcpy(char *d, const char *s) { char *r = d; while ((*d++ = *s++)) {} return r; }
+char *strncpy(char *d, const char *s, size_t n) { size_t i = 0; for (; i < n && s[i]; i++) d[i] = s[i]; for (; i < n; i++) d[i] = 0; return d; }
+char *strcat(char *d, const char *s) { strcpy(d + strlen(d), s); return d; }
+char *strncat(char *d, const char *s, size_t n) { char *e = d + strlen(d); while (n-- && *s) *e++ = *s++; *e = 0; return d; }
+char *strchr(const char *s, int c) { for (;; s++) { if (*s == (char)c) return (char *)s; if (!*s) return 0; } }
+char *strrchr(const char *s, int c) { const char *r = 0; for (;; s++) { if (*s == (char)c) r = s; if (!*s) return (char *)r; } }
+char *strstr(const char *h, const char *n) { size_t k = strlen(n); if (!k) return (char *)h; for (; *h; h++) if (!strncmp(h, n, k)) return (char *)h; return 0; }
+char *strtok(char *s, const char *delim) {
+  static char *next; if (s) next = s; if (!next) return 0;
+  while (*next && strchr(delim, *next)) next++;
+  if (!*next) { next = 0; return 0; }
+  char *tok = next; while (*next && !strchr(delim, *next)) next++;
+  if (*next) *next++ = 0; else next = 0;
+  return tok;
+}
+int isdigit(int c) { return c >= '0' && c <= '9'; }
+int isalpha(int c) { return (c | 32) >= 'a' && (c | 32) <= 'z'; }
+int isalnum(int c) { return isdigit(c) || isalpha(c); }
+int isspace(int c) { return c == ' ' || (c >= 9 && c <= 13); }
+int isupper(int c) { return c >= 'A' && c <= 'Z'; }
+int islower(int c) { return c >= 'a' && c <= 'z'; }
+int toupper(int c) { return islower(c) ? c - 32 : c; }
+int tolower(int c) { return isupper(c) ? c + 32 : c; }
+
+/* memory: a simple first-fit allocator on top of the WebAssembly heap */
+extern unsigned char __heap_base;
+struct Blk { size_t size; Blk *next; size_t pad[2]; };
+static unsigned char *heapEnd; static Blk *freeList;
+void *malloc(size_t n) {
+  n = (n + 15) & ~(size_t)15;
+  for (Blk **pp = &freeList; *pp; pp = &(*pp)->next)
+    if ((*pp)->size >= n) { Blk *b = *pp; *pp = b->next; return b + 1; }
+  if (!heapEnd) heapEnd = (unsigned char *)(((size_t)&__heap_base + 15) & ~(size_t)15);
+  size_t need = (size_t)heapEnd + sizeof(Blk) + n, have = __builtin_wasm_memory_size(0) * 65536;
+  if (need > have && __builtin_wasm_memory_grow(0, (need - have + 65535) / 65536) == (size_t)-1) return 0;
+  Blk *b = (Blk *)heapEnd; b->size = n; heapEnd += sizeof(Blk) + n; return b + 1;
+}
+void free(void *p) { if (!p) return; Blk *b = (Blk *)p - 1; b->next = freeList; freeList = b; }
+void *calloc(size_t a, size_t b) { void *p = malloc(a * b); if (p) memset(p, 0, a * b); return p; }
+void *realloc(void *p, size_t n) {
+  if (!p) return malloc(n);
+  Blk *b = (Blk *)p - 1; if (b->size >= n) return p;
+  void *q = malloc(n); if (!q) return 0; memcpy(q, p, b->size); free(p); return q;
+}
+
+/* numbers <-> text */
+static char *utoa_(unsigned long long v, char *buf, int base) {
+  char tmp[66]; int i = 0; if (base < 2 || base > 36) base = 10;
+  do { int d = v % base; tmp[i++] = d < 10 ? '0' + d : 'a' + d - 10; v /= base; } while (v);
+  int j = 0; while (i) buf[j++] = tmp[--i]; buf[j] = 0; return buf;
+}
+static char *ltoa_(long long v, char *buf, int base) {
+  if (base == 10 && v < 0) { buf[0] = '-'; utoa_((unsigned long long)(-v), buf + 1, 10); return buf; }
+  return utoa_((unsigned long long)(unsigned long)v, buf, base);
+}
+char *itoa(int v, char *b, int base) { return ltoa_(v, b, base); }
+char *ltoa(long v, char *b, int base) { return ltoa_(v, b, base); }
+long strtol(const char *s, char **end, int base) {
+  while (isspace(*s)) s++;
+  int neg = 0; if (*s == '-' || *s == '+') neg = *s++ == '-';
+  if ((base == 0 || base == 16) && s[0] == '0' && (s[1] | 32) == 'x') { s += 2; base = 16; }
+  else if (base == 0) base = s[0] == '0' ? 8 : 10;
+  long v = 0;
+  for (;; s++) { int d = isdigit(*s) ? *s - '0' : isalpha(*s) ? (*s | 32) - 'a' + 10 : 99; if (d >= base) break; v = v * base + d; }
+  if (end) *end = (char *)s; return neg ? -v : v;
+}
+double strtod(const char *s, char **end) {
+  while (isspace(*s)) s++;
+  int neg = 0; if (*s == '-' || *s == '+') neg = *s++ == '-';
+  double v = 0; while (isdigit(*s)) v = v * 10 + (*s++ - '0');
+  if (*s == '.') { s++; double f = 0.1; while (isdigit(*s)) { v += (*s++ - '0') * f; f /= 10; } }
+  if ((*s | 32) == 'e') { const char *e = s + 1; int en = 0; if (*e == '-' || *e == '+') en = *e++ == '-'; if (isdigit(*e)) { int x = 0; while (isdigit(*e)) x = x * 10 + (*e++ - '0'); double m = 1; while (x--) m *= 10; v = en ? v / m : v * m; s = e; } }
+  if (end) *end = (char *)s; return neg ? -v : v;
+}
+int atoi(const char *s) { return (int)strtol(s, 0, 10); }
+long atol(const char *s) { return strtol(s, 0, 10); }
+double atof(const char *s) { return strtod(s, 0); }
+long labs(long v) { return v < 0 ? -v : v; }
+static unsigned long randState = 1;
+int rand(void) { randState = randState * 1103515245 + 12345; return (int)((randState >> 1) & 0x7fffffff); }
+void srand(unsigned int s) { randState = s; }
+
+/* fixed-point text for a double, like Print::printFloat */
+static int ftoa_(double v, int digits, char *out) {
+  char *o = out;
+  if (__builtin_isnan(v)) { strcpy(o, "nan"); return 3; }
+  if (__builtin_isinf(v)) { strcpy(o, v < 0 ? "-inf" : "inf"); return (int)strlen(o); }
+  if (v > 4294967040.0 || v < -4294967040.0) { strcpy(o, "ovf"); return 3; }
+  if (v < 0) { *o++ = '-'; v = -v; }
+  double r = 0.5; for (int i = 0; i < digits; i++) r /= 10.0; v += r;
+  unsigned long ip = (unsigned long)v; double rem = v - (double)ip;
+  utoa_(ip, o, 10); o += strlen(o);
+  if (digits > 0) { *o++ = '.'; while (digits-- > 0) { rem *= 10.0; int d = (int)rem; *o++ = '0' + d; rem -= d; } }
+  *o = 0; return (int)(o - out);
+}
+char *dtostrf(double v, signed char width, unsigned char prec, char *out) {
+  char tmp[48]; int n = ftoa_(v, prec, tmp), w = width < 0 ? -width : width, pad = w > n ? w - n : 0;
+  char *o = out;
+  if (width > 0) while (pad--) *o++ = ' ';
+  strcpy(o, tmp); o += n;
+  if (width < 0) while (pad--) *o++ = ' ';
+  *o = 0; return out;
+}
+
+/* printf family: d i u x X o c s f F e g p %, with flags - 0 + space, width, precision, h hh l ll z */
+int vsnprintf(char *buf, size_t size, const char *f, va_list ap) {
+  size_t n = 0;
+#define PUT(ch) do { if (n + 1 < size) buf[n] = (ch); n++; } while (0)
+  for (; *f; f++) {
+    if (*f != '%') { PUT(*f); continue; }
+    f++;
+    int left = 0, zero = 0, plus = 0, space = 0, width = 0, prec = -1, lng = 0;
+    for (;; f++) { if (*f == '-') left = 1; else if (*f == '0') zero = 1; else if (*f == '+') plus = 1; else if (*f == ' ') space = 1; else if (*f == '#') {} else break; }
+    if (*f == '*') { width = va_arg(ap, int); f++; } else while (isdigit(*f)) width = width * 10 + (*f++ - '0');
+    if (*f == '.') { f++; prec = 0; if (*f == '*') { prec = va_arg(ap, int); f++; } else while (isdigit(*f)) prec = prec * 10 + (*f++ - '0'); }
+    while (*f == 'h' || *f == 'l' || *f == 'z' || *f == 'j' || *f == 't') { if (*f == 'l') lng++; f++; }
+    char tmp[72]; const char *s = tmp; int len;
+    char c = *f;
+    if (c == 'd' || c == 'i') {
+      long long v = lng >= 2 ? va_arg(ap, long long) : (long long)va_arg(ap, long);
+      ltoa_(v, tmp, 10);
+      if (v >= 0 && (plus || space)) { memmove(tmp + 1, tmp, strlen(tmp) + 1); tmp[0] = plus ? '+' : ' '; }
+    } else if (c == 'u' || c == 'x' || c == 'X' || c == 'o') {
+      unsigned long long v = lng >= 2 ? va_arg(ap, unsigned long long) : (unsigned long long)va_arg(ap, unsigned long);
+      utoa_(v, tmp, c == 'o' ? 8 : c == 'u' ? 10 : 16);
+      if (c == 'X') for (char *p = tmp; *p; p++) *p = (char)toupper(*p);
+    } else if (c == 'f' || c == 'F' || c == 'e' || c == 'E' || c == 'g' || c == 'G') {
+      double v = va_arg(ap, double); ftoa_(v, prec < 0 ? 6 : prec, tmp);
+      if ((c == 'g' || c == 'G') && strchr(tmp, '.')) { char *e = tmp + strlen(tmp) - 1; while (*e == '0') *e-- = 0; if (*e == '.') *e = 0; }
+      if (v >= 0 && (plus || space)) { memmove(tmp + 1, tmp, strlen(tmp) + 1); tmp[0] = plus ? '+' : ' '; }
+    } else if (c == 'c') { tmp[0] = (char)va_arg(ap, int); tmp[1] = 0; }
+    else if (c == 's') { s = va_arg(ap, const char *); if (!s) s = "(null)"; }
+    else if (c == 'p') { tmp[0] = '0'; tmp[1] = 'x'; utoa_((unsigned long)va_arg(ap, void *), tmp + 2, 16); }
+    else if (c == '%') { tmp[0] = '%'; tmp[1] = 0; }
+    else { if (!c) break; tmp[0] = c; tmp[1] = 0; }
+    len = (int)strlen(s);
+    if (c == 's' && prec >= 0 && prec < len) len = prec;
+    int pad = width > len ? width - len : 0;
+    if (!left) { char pc = zero && c != 's' && c != 'c' ? '0' : ' ';
+      if (pc == '0' && (s[0] == '-' || s[0] == '+')) { PUT(s[0]); s++; len--; }
+      while (pad--) PUT(pc); }
+    for (int i = 0; i < len; i++) PUT(s[i]);
+    if (left) while (pad-- > 0) PUT(' ');
+  }
+  if (size) buf[n < size ? n : size - 1] = 0;
+#undef PUT
+  return (int)n;
+}
+int snprintf(char *b, size_t n, const char *f, ...) { va_list ap; va_start(ap, f); int r = vsnprintf(b, n, f, ap); va_end(ap); return r; }
+int sprintf(char *b, const char *f, ...) { va_list ap; va_start(ap, f); int r = vsnprintf(b, 4096, f, ap); va_end(ap); return r; }
+int sscanf(const char *, const char *, ...) { return 0; }
+
+/* math: the precise functions come from JavaScript's Math, the simple ones are WebAssembly instructions */
+double sin(double x) { return emu_math1(0, x); } double cos(double x) { return emu_math1(1, x); } double tan(double x) { return emu_math1(2, x); }
+double asin(double x) { return emu_math1(3, x); } double acos(double x) { return emu_math1(4, x); } double atan(double x) { return emu_math1(5, x); }
+double sinh(double x) { return emu_math1(6, x); } double cosh(double x) { return emu_math1(7, x); } double tanh(double x) { return emu_math1(8, x); }
+double exp(double x) { return emu_math1(9, x); } double log(double x) { return emu_math1(10, x); } double log10(double x) { return emu_math1(11, x); }
+double log2(double x) { return emu_math1(12, x); } double cbrt(double x) { return emu_math1(13, x); }
+double atan2(double y, double x) { return emu_math2(0, y, x); } double pow(double x, double y) { return emu_math2(1, x, y); }
+double fmod(double x, double y) { return emu_math2(2, x, y); } double hypot(double x, double y) { return emu_math2(3, x, y); }
+double sqrt(double x) { return __builtin_sqrt(x); } double fabs(double x) { return __builtin_fabs(x); }
+double floor(double x) { return __builtin_floor(x); } double ceil(double x) { return __builtin_ceil(x); } double trunc(double x) { return __builtin_trunc(x); }
+double round(double x) { return x < 0 ? -__builtin_floor(-x + 0.5) : __builtin_floor(x + 0.5); }
+long lround(double x) { return (long)round(x); }
+double fmin(double a, double b) { return a < b ? a : b; } double fmax(double a, double b) { return a > b ? a : b; }
+float sinf(float x) { return (float)sin(x); } float cosf(float x) { return (float)cos(x); } float sqrtf(float x) { return __builtin_sqrtf(x); }
+float powf(float x, float y) { return (float)pow(x, y); } float fabsf(float x) { return __builtin_fabsf(x); } float roundf(float x) { return (float)round(x); }
+float floorf(float x) { return __builtin_floorf(x); } float ceilf(float x) { return __builtin_ceilf(x); }
+int isnan(double x) { return __builtin_isnan(x); } int isinf(double x) { return __builtin_isinf(x); }
+
+int __cxa_atexit(void (*)(void *), void *, void *) { return 0; }
+void __cxa_pure_virtual() { emu_abort("pure virtual function called"); }
+void *__dso_handle = 0;
+}
+void *operator new(size_t n) { return malloc(n ? n : 1); }
+void *operator new[](size_t n) { return malloc(n ? n : 1); }
+void operator delete(void *p) noexcept { free(p); }
+void operator delete[](void *p) noexcept { free(p); }
+void operator delete(void *p, size_t) noexcept { free(p); }
+void operator delete[](void *p, size_t) noexcept { free(p); }
+
+/* ---------- Arduino core ---------- */
+void pinMode(pin_size_t p, int m) { emu_pinMode(p, m); }
+void digitalWrite(pin_size_t p, int v) { emu_digitalWrite(p, v); }
+int digitalRead(pin_size_t p) { __emu_yield(); return emu_digitalRead(p); }
+int analogRead(pin_size_t p) { __emu_yield(); return emu_analogRead(p); }
+void analogWrite(pin_size_t p, int v) { emu_analogWrite(p, v); }
+void analogReadResolution(int b) { emu_adcBits(b); }
+void analogWriteResolution(int) {}
+void analogReference(uint8_t) {}
+unsigned long millis(void) { __emu_yield(); return emu_millis(); }
+unsigned long micros(void) { __emu_yield(); return emu_micros(); }
+void delay(unsigned long ms) { emu_delay(ms); }
+void delayMicroseconds(unsigned int us) { if (us >= 1000) emu_delay(us / 1000); }
+void tone(unsigned int pin, unsigned int f, unsigned long d) { emu_tone(pin, f, d); }
+void noTone(uint8_t pin) { emu_noTone(pin); }
+unsigned long pulseIn(uint8_t, uint8_t, unsigned long) { return 0; }
+void shiftOut(uint8_t, uint8_t, uint8_t, uint8_t) {}
+long map(long x, long a, long b, long c, long d) { return (x - a) * (d - c) / (b - a) + c; }
+long random(long howbig) { return howbig <= 0 ? 0 : (long)(emu_random() * howbig); }
+long random(long lo, long hi) { return lo >= hi ? lo : lo + random(hi - lo); }
+void randomSeed(unsigned long s) { srand(s); }
+void attachInterrupt(pin_size_t pin, void (*fn)(void), int mode) { emu_attach(pin, (int)(uintptr_t)fn, mode); }
+void detachInterrupt(pin_size_t pin) { emu_detach(pin); }
+void interrupts(void) {}
+void noInterrupts(void) {}
+void yield(void) { __emu_yield(); }
+bool isDigit(int c) { return isdigit(c); } bool isAlpha(int c) { return isalpha(c); } bool isAlphaNumeric(int c) { return isalnum(c); }
+bool isSpace(int c) { return isspace(c); } bool isWhitespace(int c) { return c == ' ' || c == '\t'; }
+bool isUpperCase(int c) { return isupper(c); } bool isLowerCase(int c) { return islower(c); }
+bool isPunct(int c) { return c > 32 && c < 127 && !isalnum(c); } bool isPrintable(int c) { return c >= 32 && c < 127; }
+bool isAscii(int c) { return c >= 0 && c < 128; } bool isControl(int c) { return c < 32 || c == 127; }
+bool isHexadecimalDigit(int c) { return isdigit(c) || ((c | 32) >= 'a' && (c | 32) <= 'f'); }
+
+/* ---------- String ---------- */
+void String::init() { buf = 0; cap = 0; len = 0; }
+String::~String() { free(buf); }
+bool String::grow(unsigned int size) {
+  if (buf && cap >= size) return true;
+  char *nb = (char *)realloc(buf, size + 1); if (!nb) return false;
+  if (!buf) nb[0] = 0; buf = nb; cap = size; return true;
+}
+String &String::copy(const char *c, unsigned int n) { if (!grow(n)) return *this; memmove(buf, c, n); buf[n] = 0; len = n; return *this; }
+bool String::append(const char *c, unsigned int n) {
+  if (!c) return false; if (!n) return true;
+  unsigned int off = (buf && c >= buf && c < buf + len) ? (unsigned int)(c - buf) : ~0u;  // appending (part of) itself
+  if (!grow(len + n)) return false;
+  memmove(buf + len, off != ~0u ? buf + off : c, n); len += n; buf[len] = 0; return true;
+}
+String::String(const char *c) { init(); if (!c) c = ""; copy(c, strlen(c)); }
+String::String(const String &s) { init(); copy(s.c_str(), s.len); }
+String::String(const __FlashStringHelper *s) { init(); const char *c = (const char *)s; copy(c, strlen(c)); }
+String::String(char c) { init(); char b[2] = {c, 0}; copy(b, 1); }
+String::String(unsigned char v, unsigned char base) { init(); char b[40]; utoa_(v, b, base); copy(b, strlen(b)); }
+String::String(int v, unsigned char base) { init(); char b[40]; ltoa_(v, b, base); copy(b, strlen(b)); }
+String::String(unsigned int v, unsigned char base) { init(); char b[40]; utoa_(v, b, base); copy(b, strlen(b)); }
+String::String(long v, unsigned char base) { init(); char b[40]; ltoa_(v, b, base); copy(b, strlen(b)); }
+String::String(unsigned long v, unsigned char base) { init(); char b[40]; utoa_(v, b, base); copy(b, strlen(b)); }
+String::String(float v, unsigned char d) { init(); char b[48]; dtostrf(v, d + 2, d, b); copy(b, strlen(b)); }
+String::String(double v, unsigned char d) { init(); char b[48]; dtostrf(v, d + 2, d, b); copy(b, strlen(b)); }
+String &String::operator=(const String &r) { if (this != &r) copy(r.c_str(), r.len); return *this; }
+String &String::operator=(const char *c) { if (!c) c = ""; return copy(c, strlen(c)); }
+bool String::concat(const String &s) { return append(s.c_str(), s.len); }
+bool String::concat(const char *c) { return c && append(c, strlen(c)); }
+bool String::concat(char c) { char b[2] = {c, 0}; return append(b, 1); }
+bool String::concat(unsigned char v) { char b[40]; utoa_(v, b, 10); return concat((const char *)b); }
+bool String::concat(int v) { char b[40]; ltoa_(v, b, 10); return concat((const char *)b); }
+bool String::concat(unsigned int v) { char b[40]; utoa_(v, b, 10); return concat((const char *)b); }
+bool String::concat(long v) { char b[40]; ltoa_(v, b, 10); return concat((const char *)b); }
+bool String::concat(unsigned long v) { char b[40]; utoa_(v, b, 10); return concat((const char *)b); }
+bool String::concat(float v) { char b[48]; dtostrf(v, 4, 2, b); return concat((const char *)b); }
+bool String::concat(double v) { char b[48]; dtostrf(v, 4, 2, b); return concat((const char *)b); }
+String &String::operator+=(const String &r) { concat(r); return *this; }
+String &String::operator+=(const char *c) { concat(c); return *this; }
+String &String::operator+=(char c) { concat(c); return *this; }
+String &String::operator+=(unsigned char v) { concat(v); return *this; }
+String &String::operator+=(int v) { concat(v); return *this; }
+String &String::operator+=(unsigned int v) { concat(v); return *this; }
+String &String::operator+=(long v) { concat(v); return *this; }
+String &String::operator+=(unsigned long v) { concat(v); return *this; }
+String &String::operator+=(float v) { concat(v); return *this; }
+String &String::operator+=(double v) { concat(v); return *this; }
+String operator+(const String &a, const String &b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, const char *b) { String r(a); r.concat(b); return r; }
+String operator+(const char *a, const String &b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, char b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, unsigned char b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, int b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, unsigned int b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, long b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, unsigned long b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, float b) { String r(a); r.concat(b); return r; }
+String operator+(const String &a, double b) { String r(a); r.concat(b); return r; }
+unsigned int String::length(void) const { return len; }
+const char *String::c_str() const { return buf ? buf : ""; }
+char *String::begin() { return buf; }
+char *String::end() { return buf + len; }
+int String::compareTo(const String &s) const { return strcmp(c_str(), s.c_str()); }
+bool String::equals(const String &s) const { return len == s.len && !strcmp(c_str(), s.c_str()); }
+bool String::equals(const char *c) const { return !strcmp(c_str(), c ? c : ""); }
+bool String::equalsIgnoreCase(const String &s) const {
+  if (len != s.len) return false;
+  for (unsigned int i = 0; i < len; i++) if (tolower(buf[i]) != tolower(s.buf[i])) return false;
+  return true;
+}
+bool String::startsWith(const String &p) const { return startsWith(p, 0); }
+bool String::startsWith(const String &p, unsigned int off) const { return off + p.len <= len && !strncmp(c_str() + off, p.c_str(), p.len); }
+bool String::endsWith(const String &s) const { return s.len <= len && !strcmp(c_str() + len - s.len, s.c_str()); }
+bool String::operator==(const String &r) const { return equals(r); }
+bool String::operator==(const char *c) const { return equals(c); }
+bool String::operator!=(const String &r) const { return !equals(r); }
+bool String::operator!=(const char *c) const { return !equals(c); }
+bool String::operator<(const String &r) const { return compareTo(r) < 0; }
+bool String::operator>(const String &r) const { return compareTo(r) > 0; }
+bool String::operator<=(const String &r) const { return compareTo(r) <= 0; }
+bool String::operator>=(const String &r) const { return compareTo(r) >= 0; }
+char String::charAt(unsigned int i) const { return i < len ? buf[i] : 0; }
+void String::setCharAt(unsigned int i, char c) { if (i < len) buf[i] = c; }
+char String::operator[](unsigned int i) const { return i < len ? buf[i] : 0; }
+char &String::operator[](unsigned int i) { static char dummy; if (i >= len) { dummy = 0; return dummy; } return buf[i]; }
+void String::getBytes(unsigned char *b, unsigned int size, unsigned int index) const {
+  if (!size || !b) return; unsigned int i = 0;
+  for (; index + i < len && i + 1 < size; i++) b[i] = buf[index + i];
+  b[i] = 0;
+}
+void String::toCharArray(char *b, unsigned int size, unsigned int index) const { getBytes((unsigned char *)b, size, index); }
+int String::indexOf(char c) const { return indexOf(c, 0); }
+int String::indexOf(char c, unsigned int from) const { for (unsigned int i = from; i < len; i++) if (buf[i] == c) return i; return -1; }
+int String::indexOf(const String &s) const { return indexOf(s, 0); }
+int String::indexOf(const String &s, unsigned int from) const {
+  if (from > len) return -1; const char *f = strstr(c_str() + from, s.c_str()); return f ? (int)(f - c_str()) : -1;
+}
+int String::lastIndexOf(char c) const { return len ? lastIndexOf(c, len - 1) : -1; }
+int String::lastIndexOf(char c, unsigned int from) const { if (!len) return -1; if (from >= len) from = len - 1; for (int i = from; i >= 0; i--) if (buf[i] == c) return i; return -1; }
+int String::lastIndexOf(const String &s) const { return len >= s.len ? lastIndexOf(s, len - s.len) : -1; }
+int String::lastIndexOf(const String &s, unsigned int from) const {
+  if (s.len > len) return -1; if (from > len - s.len) from = len - s.len;
+  for (int i = from; i >= 0; i--) if (!strncmp(c_str() + i, s.c_str(), s.len)) return i;
+  return -1;
+}
+String String::substring(unsigned int b) const { return substring(b, len); }
+String String::substring(unsigned int b, unsigned int e) const {
+  if (b > e) { unsigned int t = b; b = e; e = t; }
+  if (b >= len) return String(""); if (e > len) e = len;
+  String r; r.copy(c_str() + b, e - b); return r;
+}
+void String::replace(char f, char r) { for (unsigned int i = 0; i < len; i++) if (buf[i] == f) buf[i] = r; }
+void String::replace(const String &f, const String &r) {
+  if (!f.len) return; String out; unsigned int i = 0;
+  while (i < len) {
+    if (i + f.len <= len && !strncmp(buf + i, f.c_str(), f.len)) { out.concat(r); i += f.len; }
+    else out.concat(buf[i++]);
+  }
+  copy(out.c_str(), out.len);
+}
+void String::remove(unsigned int index) { remove(index, ~0u); }
+void String::remove(unsigned int index, unsigned int count) {
+  if (index >= len) return; if (count > len - index) count = len - index;
+  memmove(buf + index, buf + index + count, len - index - count + 1); len -= count;
+}
+void String::toLowerCase(void) { for (unsigned int i = 0; i < len; i++) buf[i] = (char)tolower(buf[i]); }
+void String::toUpperCase(void) { for (unsigned int i = 0; i < len; i++) buf[i] = (char)toupper(buf[i]); }
+void String::trim(void) {
+  if (!len) return; unsigned int b = 0, e = len;
+  while (b < len && isspace(buf[b])) b++; while (e > b && isspace(buf[e - 1])) e--;
+  memmove(buf, buf + b, e - b); len = e - b; buf[len] = 0;
+}
+bool String::reserve(unsigned int size) { return grow(size); }
+long String::toInt(void) const { return atol(c_str()); }
+float String::toFloat(void) const { return (float)atof(c_str()); }
+double String::toDouble(void) const { return atof(c_str()); }
+
+/* ---------- Print / Stream / Serial ---------- */
+size_t Print::write(const char *s) { return s ? write((const uint8_t *)s, strlen(s)) : 0; }
+size_t Print::write(const uint8_t *b, size_t n) { size_t k = 0; while (n--) k += write(*b++); return k; }
+size_t Print::write(const char *b, size_t n) { return write((const uint8_t *)b, n); }
+void Print::flush() {}
+size_t Print::printNumber(unsigned long long n, uint8_t base) { char b[72]; utoa_(n, b, base < 2 ? 10 : base); for (char *p = b; *p; p++) *p = (char)toupper(*p); return write(b); }
+size_t Print::printFloat(double v, int digits) { char b[48]; ftoa_(v, digits, b); return write(b); }
+size_t Print::print(const __FlashStringHelper *s) { return write((const char *)s); }
+size_t Print::print(const String &s) { return write(s.c_str(), s.length()); }
+size_t Print::print(const char s[]) { return write(s); }
+size_t Print::print(char c) { return write((uint8_t)c); }
+size_t Print::print(unsigned char b, int base) { return print((unsigned long)b, base); }
+size_t Print::print(int n, int base) { return print((long)n, base); }
+size_t Print::print(unsigned int n, int base) { return print((unsigned long)n, base); }
+size_t Print::print(long n, int base) {
+  if (base == 0) return write((uint8_t)n);
+  if (base == 10 && n < 0) { size_t t = print('-'); return t + printNumber((unsigned long long)(-(long long)n), 10); }
+  return printNumber((unsigned long)n, base);
+}
+size_t Print::print(unsigned long n, int base) { return base == 0 ? write((uint8_t)n) : printNumber(n, base); }
+size_t Print::print(long long n, int base) {
+  if (base == 0) return write((uint8_t)n);
+  if (base == 10 && n < 0) { size_t t = print('-'); return t + printNumber((unsigned long long)(-n), 10); }
+  return printNumber((unsigned long long)n, base);
+}
+size_t Print::print(unsigned long long n, int base) { return base == 0 ? write((uint8_t)n) : printNumber(n, base); }
+size_t Print::print(double n, int digits) { return printFloat(n, digits); }
+size_t Print::println(void) { return write("\r\n"); }
+size_t Print::println(const __FlashStringHelper *s) { size_t n = print(s); return n + println(); }
+size_t Print::println(const String &s) { size_t n = print(s); return n + println(); }
+size_t Print::println(const char c[]) { size_t n = print(c); return n + println(); }
+size_t Print::println(char c) { size_t n = print(c); return n + println(); }
+size_t Print::println(unsigned char b, int base) { size_t n = print(b, base); return n + println(); }
+size_t Print::println(int v, int base) { size_t n = print(v, base); return n + println(); }
+size_t Print::println(unsigned int v, int base) { size_t n = print(v, base); return n + println(); }
+size_t Print::println(long v, int base) { size_t n = print(v, base); return n + println(); }
+size_t Print::println(unsigned long v, int base) { size_t n = print(v, base); return n + println(); }
+size_t Print::println(long long v, int base) { size_t n = print(v, base); return n + println(); }
+size_t Print::println(unsigned long long v, int base) { size_t n = print(v, base); return n + println(); }
+size_t Print::println(double v, int digits) { size_t n = print(v, digits); return n + println(); }
+int Print::printf(const char *f, ...) {
+  char b[256]; va_list ap; va_start(ap, f); int r = vsnprintf(b, sizeof b, f, ap); va_end(ap);
+  write(b, r < (int)sizeof b ? r : (int)sizeof b - 1); return r;
+}
+
+void Stream::setTimeout(unsigned long t) { _timeout = t; }
+int Stream::timedRead() { unsigned long s = millis(); do { int c = read(); if (c >= 0) return c; yield(); } while (millis() - s < _timeout); return -1; }
+int Stream::timedPeek() { unsigned long s = millis(); do { int c = peek(); if (c >= 0) return c; yield(); } while (millis() - s < _timeout); return -1; }
+int Stream::peekNextDigit(bool dec) {
+  for (;;) { int c = timedPeek(); if (c < 0 || c == '-' || (c >= '0' && c <= '9') || (dec && c == '.')) return c; read(); }
+}
+long Stream::parseInt() {
+  bool neg = false; long v = 0; int c = peekNextDigit(false);
+  if (c < 0) return 0;
+  do { if (c == '-') neg = true; else v = v * 10 + c - '0'; read(); c = timedPeek(); } while (c >= '0' && c <= '9');
+  return neg ? -v : v;
+}
+float Stream::parseFloat() {
+  bool neg = false, frac = false; double v = 0, f = 1; int c = peekNextDigit(true);
+  if (c < 0) return 0;
+  do {
+    if (c == '-') neg = true; else if (c == '.') frac = true;
+    else { v = v * 10 + c - '0'; if (frac) f *= 0.1; }
+    read(); c = timedPeek();
+  } while ((c >= '0' && c <= '9') || (c == '.' && !frac));
+  return (float)((neg ? -v : v) * f);
+}
+bool Stream::find(const char *t) { size_t k = strlen(t), i = 0; if (!k) return true; for (;;) { int c = timedRead(); if (c < 0) return false; if (c == t[i]) { if (++i == k) return true; } else i = c == t[0] ? 1 : 0; } }
+bool Stream::findUntil(const char *t, const char *) { return find(t); }
+size_t Stream::readBytes(char *b, size_t n) { size_t k = 0; while (k < n) { int c = timedRead(); if (c < 0) break; b[k++] = (char)c; } return k; }
+size_t Stream::readBytesUntil(char t, char *b, size_t n) { size_t k = 0; while (k < n) { int c = timedRead(); if (c < 0 || c == t) break; b[k++] = (char)c; } return k; }
+String Stream::readString() { String r; int c = timedRead(); while (c >= 0) { r += (char)c; c = timedRead(); } return r; }
+String Stream::readStringUntil(char t) { String r; int c = timedRead(); while (c >= 0 && c != t) { r += (char)c; c = timedRead(); } return r; }
+
+void HardwareSerial::begin(unsigned long) {}
+void HardwareSerial::begin(unsigned long, uint16_t) {}
+void HardwareSerial::end() {}
+int HardwareSerial::available(void) { __emu_yield(); return emu_serialAvailable(); }
+int HardwareSerial::peek(void) { return emu_serialPeek(); }
+int HardwareSerial::read(void) { return emu_serialRead(); }
+void HardwareSerial::flush(void) {}
+int HardwareSerial::availableForWrite(void) { return 256; }
+size_t HardwareSerial::write(uint8_t c) { emu_serialWrite(&c, 1); return 1; }
+HardwareSerial::operator bool() { return true; }
+HardwareSerial Serial, Serial1;
+
+/* ---------- Wire (the I2C devices are simulated directly, so the bus itself does nothing) ---------- */
+void TwoWire::begin() {} void TwoWire::begin(uint8_t) {} void TwoWire::end() {} void TwoWire::setClock(uint32_t) {}
+void TwoWire::beginTransmission(uint8_t) {} uint8_t TwoWire::endTransmission(bool) { return 0; }
+size_t TwoWire::requestFrom(uint8_t, size_t, bool) { return 0; }
+size_t TwoWire::write(uint8_t) { return 1; } size_t TwoWire::write(const uint8_t *, size_t n) { return n; }
+int TwoWire::available() { return 0; } int TwoWire::read() { return -1; } int TwoWire::peek() { return -1; } void TwoWire::flush() {}
+void TwoWire::onReceive(void (*)(int)) {} void TwoWire::onRequest(void (*)(void)) {}
+TwoWire Wire;
+
+/* ---------- Servo ---------- */
+Servo::Servo() { _id = emu_servo(0, 0, 0, 0, 0); }
+uint8_t Servo::attach(int pin) { return (uint8_t)emu_servo(1, _id, pin, 544, 2400); }
+uint8_t Servo::attach(int pin, int mn, int mx) { return (uint8_t)emu_servo(1, _id, pin, mn, mx); }
+void Servo::detach() { emu_servo(2, _id, 0, 0, 0); }
+void Servo::write(int v) { emu_servo(3, _id, v, 0, 0); }
+void Servo::writeMicroseconds(int v) { emu_servo(4, _id, v, 0, 0); }
+int Servo::read() { return emu_servo(5, _id, 0, 0, 0); }
+int Servo::readMicroseconds() { return emu_servo(6, _id, 0, 0, 0); }
+bool Servo::attached() { return emu_servo(7, _id, 0, 0, 0); }
+
+/* ---------- Adafruit_NeoPixel (colour maths copied from the Adafruit library) ---------- */
+Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t pin, neoPixelType) { _id = emu_neo(0, 0, n, pin, 0); }
+Adafruit_NeoPixel::Adafruit_NeoPixel(void) { _id = emu_neo(0, 0, 0, -1, 0); }
+void Adafruit_NeoPixel::begin(void) {}
+void Adafruit_NeoPixel::show(void) { emu_neo(1, _id, 0, 0, 0); }
+void Adafruit_NeoPixel::setPin(int16_t p) { emu_neo(2, _id, p, 0, 0); }
+void Adafruit_NeoPixel::updateLength(uint16_t n) { emu_neo(3, _id, n, 0, 0); }
+void Adafruit_NeoPixel::updateType(neoPixelType) {}
+void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) { emu_neo(4, _id, n, (int)Color(r, g, b), 0); }
+void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b, uint8_t) { emu_neo(4, _id, n, (int)Color(r, g, b), 0); }
+void Adafruit_NeoPixel::setPixelColor(uint16_t n, uint32_t c) { emu_neo(4, _id, n, (int)c, 0); }
+void Adafruit_NeoPixel::fill(uint32_t c, uint16_t first, uint16_t count) { emu_neo(5, _id, (int)c, first, count); }
+void Adafruit_NeoPixel::setBrightness(uint8_t b) { emu_neo(6, _id, b, 0, 0); }
+void Adafruit_NeoPixel::clear(void) { emu_neo(7, _id, 0, 0, 0); }
+bool Adafruit_NeoPixel::canShow(void) { return true; }
+uint8_t Adafruit_NeoPixel::getBrightness(void) const { return (uint8_t)emu_neo(8, _id, 0, 0, 0); }
+int16_t Adafruit_NeoPixel::getPin(void) const { return (int16_t)emu_neo(9, _id, 0, 0, 0); }
+uint16_t Adafruit_NeoPixel::numPixels(void) const { return (uint16_t)emu_neo(10, _id, 0, 0, 0); }
+uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) const { return (uint32_t)emu_neo(11, _id, n, 0, 0); }
+uint8_t *Adafruit_NeoPixel::getPixels(void) const { return 0; }
+uint32_t Adafruit_NeoPixel::Color(uint8_t r, uint8_t g, uint8_t b) { return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b; }
+uint32_t Adafruit_NeoPixel::Color(uint8_t r, uint8_t g, uint8_t b, uint8_t w) { return ((uint32_t)w << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b; }
+uint32_t Adafruit_NeoPixel::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) {
+  uint8_t r, g, b;
+  hue = (hue * 1530L + 32768) / 65536;
+  if (hue < 510) { b = 0; if (hue < 255) { r = 255; g = hue; } else { r = 510 - hue; g = 255; } }
+  else if (hue < 1020) { r = 0; if (hue < 765) { g = 255; b = hue - 510; } else { g = 1020 - hue; b = 255; } }
+  else if (hue < 1530) { g = 0; if (hue < 1275) { r = hue - 1020; b = 255; } else { r = 255; b = 1530 - hue; } }
+  else { r = 255; g = b = 0; }
+  uint32_t v1 = 1 + val; uint16_t s1 = 1 + sat; uint8_t s2 = 255 - sat;
+  return ((((((r * s1) >> 8) + s2) * v1) & 0xff00) << 8) | (((((g * s1) >> 8) + s2) * v1) & 0xff00) | (((((b * s1) >> 8) + s2) * v1) >> 8);
+}
+uint8_t Adafruit_NeoPixel::gamma8(uint8_t x) { return (uint8_t)(pow(x / 255.0, 2.6) * 255.0 + 0.5); }
+uint32_t Adafruit_NeoPixel::gamma32(uint32_t x) {
+  uint8_t *y = (uint8_t *)&x; for (uint8_t i = 0; i < 4; i++) y[i] = gamma8(y[i]); return x;
+}
+uint8_t Adafruit_NeoPixel::sine8(uint8_t x) { return (uint8_t)((sin(x * 2 * PI / 256) + 1) * 127.5 + 0.5); }
+void Adafruit_NeoPixel::rainbow(uint16_t first, int8_t reps, uint8_t sat, uint8_t bright, bool gammify) {
+  uint16_t n = numPixels();
+  for (uint16_t i = 0; i < n; i++) {
+    uint16_t hue = first + (i * reps * 65536) / n;
+    uint32_t c = ColorHSV(hue, sat, bright); if (gammify) c = gamma32(c);
+    setPixelColor(i, c);
+  }
+}
+
+/* ---------- RGB LCD ---------- */
+rgb_lcd::rgb_lcd() {}
+void rgb_lcd::begin(uint8_t c, uint8_t r, uint8_t) { emu_lcd(0, c, r, 0); }
+void rgb_lcd::clear() { emu_lcd(1, 0, 0, 0); } void rgb_lcd::home() { emu_lcd(2, 0, 0, 0); }
+void rgb_lcd::noDisplay() { emu_lcd(3, 0, 0, 0); } void rgb_lcd::display() { emu_lcd(3, 1, 0, 0); }
+void rgb_lcd::noBlink() { emu_lcd(4, 0, 0, 0); } void rgb_lcd::blink() { emu_lcd(4, 1, 0, 0); }
+void rgb_lcd::noCursor() { emu_lcd(5, 0, 0, 0); } void rgb_lcd::cursor() { emu_lcd(5, 1, 0, 0); }
+void rgb_lcd::scrollDisplayLeft() { emu_lcd(6, 0, 0, 0); } void rgb_lcd::scrollDisplayRight() { emu_lcd(6, 1, 0, 0); }
+void rgb_lcd::leftToRight() {} void rgb_lcd::rightToLeft() {} void rgb_lcd::autoscroll() {} void rgb_lcd::noAutoscroll() {}
+void rgb_lcd::createChar(uint8_t, uint8_t[]) {}
+void rgb_lcd::setCursor(uint8_t c, uint8_t r) { emu_lcd(7, c, r, 0); }
+size_t rgb_lcd::write(uint8_t v) { emu_lcd(8, v, 0, 0); return 1; }
+void rgb_lcd::command(uint8_t) {}
+void rgb_lcd::setRGB(unsigned char r, unsigned char g, unsigned char b) { emu_lcd(9, r, g, b); }
+void rgb_lcd::setPWM(unsigned char, unsigned char) {}
+void rgb_lcd::setColor(unsigned char c) {
+  static const unsigned char t[4][3] = {{255, 255, 255}, {255, 0, 0}, {0, 255, 0}, {0, 0, 255}};
+  if (c < 4) setRGB(t[c][0], t[c][1], t[c][2]);
+}
+void rgb_lcd::setColorAll() { setRGB(0, 0, 0); } void rgb_lcd::setColorWhite() { setRGB(255, 255, 255); }
+void rgb_lcd::blinkLED(void) {} void rgb_lcd::noBlinkLED(void) {}
+
+/* ---------- sensors ---------- */
+void AHT20::begin() {} bool AHT20::startSensor() { return true; }
+bool AHT20::getSensor(float *h, float *t) { return emu_aht(h, t); }
+bool AHT20::getTemperature(float *t) { float h; return emu_aht(&h, t); }
+bool AHT20::getHumidity(float *h) { float t; return emu_aht(h, &t); }
+
+DHT::DHT(uint8_t, uint8_t, uint8_t) {} DHT::DHT(uint8_t) {} void DHT::begin(void) {}
+float DHT::readTemperature(bool f) { float h, t; if (!emu_dht(&h, &t)) return NAN; return f ? t * 1.8f + 32 : t; }
+float DHT::readHumidity(void) { float h, t; if (!emu_dht(&h, &t)) return NAN; return h; }
+int DHT::readTempAndHumidity(float *d) { return emu_dht(&d[0], &d[1]) ? 0 : -1; }
+int DHT::readTargetData(float *d) { return readTempAndHumidity(d); }
+float DHT::convertCtoF(float c) { return c * 1.8f + 32; }
+float DHT::computeHeatIndex(float t, float, bool) { return t; }
+
+static int16_t r16(float v) { return (int16_t)(v < 0 ? v - 0.5f : v + 0.5f); }
+ICM20600::ICM20600(bool) {} void ICM20600::initialize() {} uint8_t ICM20600::getDeviceID() { return 0x11; } void ICM20600::reset() {}
+void ICM20600::setPowerMode(icm20600_power_type_t) {} void ICM20600::setAccScaleRange(acc_scale_type_t) {} void ICM20600::setGyroScaleRange(gyro_scale_type_t) {}
+void ICM20600::setAccOutputDataRate(int) {} void ICM20600::setGyroOutputDataRate(int) {} void ICM20600::setSampleRateDivier(uint8_t) {}
+int16_t ICM20600::getAccelerationX(void) { return r16(emu_imu_accel(0) * 1000); }
+int16_t ICM20600::getAccelerationY(void) { return r16(emu_imu_accel(1) * 1000); }
+int16_t ICM20600::getAccelerationZ(void) { return r16(emu_imu_accel(2) * 1000); }
+void ICM20600::getAcceleration(int16_t *x, int16_t *y, int16_t *z) { *x = getAccelerationX(); *y = getAccelerationY(); *z = getAccelerationZ(); }
+int16_t ICM20600::getGyroscopeX(void) { return r16(emu_imu_gyro(0)); }
+int16_t ICM20600::getGyroscopeY(void) { return r16(emu_imu_gyro(1)); }
+int16_t ICM20600::getGyroscopeZ(void) { return r16(emu_imu_gyro(2)); }
+void ICM20600::getGyroscope(int16_t *x, int16_t *y, int16_t *z) { *x = getGyroscopeX(); *y = getGyroscopeY(); *z = getGyroscopeZ(); }
+int16_t ICM20600::getTemperature(void) { return 24; }
+
+AK09918::AK09918() {}
+AK09918_err_type_t AK09918::initialize(AK09918_mode_type_t) { return emu_imu_connected() ? AK09918_ERR_OK : AK09918_ERR_READ_FAILED; }
+AK09918_err_type_t AK09918::isDataReady() { return emu_imu_connected() ? AK09918_ERR_OK : AK09918_ERR_NOT_RDY; }
+AK09918_err_type_t AK09918::isDataSkip() { return AK09918_ERR_OK; }
+AK09918_err_type_t AK09918::getData(int32_t *x, int32_t *y, int32_t *z) {
+  int32_t m[3]; if (emu_imu_mag(m)) return AK09918_ERR_READ_FAILED; *x = m[0]; *y = m[1]; *z = m[2]; return AK09918_ERR_OK;
+}
+AK09918_err_type_t AK09918::getRawData(int32_t *x, int32_t *y, int32_t *z) {
+  AK09918_err_type_t e = getData(x, y, z); *x = *x * 20 / 3; *y = *y * 20 / 3; *z = *z * 20 / 3; return e;  // 0.15 uT per LSB
+}
+AK09918_mode_type_t AK09918::getMode() { return AK09918_CONTINUOUS_100HZ; }
+AK09918_err_type_t AK09918::switchMode(AK09918_mode_type_t) { return AK09918_ERR_OK; }
+AK09918_err_type_t AK09918::selfTest() { return AK09918_ERR_OK; }
+AK09918_err_type_t AK09918::reset() { return AK09918_ERR_OK; }
+const char *AK09918::strError(AK09918_err_type_t e) { return e == AK09918_ERR_OK ? "AK09918_ERR_OK: OK" : "AK09918 error"; }
+uint16_t AK09918::getDeviceID() { return 0x0C; }
+
+LSM6DS3::LSM6DS3(uint8_t, uint8_t) {}
+status_t LSM6DS3::begin() { return emu_imu_connected() ? 0 : 1; }
+float LSM6DS3::readFloatAccelX(void) { return emu_imu_accel(0); } float LSM6DS3::readFloatAccelY(void) { return emu_imu_accel(1); } float LSM6DS3::readFloatAccelZ(void) { return emu_imu_accel(2); }
+float LSM6DS3::readFloatGyroX(void) { return emu_imu_gyro(0); } float LSM6DS3::readFloatGyroY(void) { return emu_imu_gyro(1); } float LSM6DS3::readFloatGyroZ(void) { return emu_imu_gyro(2); }
+int16_t LSM6DS3::readRawAccelX(void) { return r16(emu_imu_accel(0) * 16393); } int16_t LSM6DS3::readRawAccelY(void) { return r16(emu_imu_accel(1) * 16393); }
+int16_t LSM6DS3::readRawAccelZ(void) { return r16(emu_imu_accel(2) * 16393); }
+int16_t LSM6DS3::readRawGyroX(void) { return r16(emu_imu_gyro(0) / 0.07f); } int16_t LSM6DS3::readRawGyroY(void) { return r16(emu_imu_gyro(1) / 0.07f); }
+int16_t LSM6DS3::readRawGyroZ(void) { return r16(emu_imu_gyro(2) / 0.07f); }
+float LSM6DS3::readTempC(void) { return 24.0f; } float LSM6DS3::readTempF(void) { return 75.2f; }
+`;
+
+// Like the Arduino IDE: add #include <Arduino.h> and prototypes for every function, so a function can be
+// called before it is defined. #line keeps clang's line numbers equal to the editor's.
+const RET = '(?:(?:static|inline|const|unsigned|signed|volatile)\\s+)*[A-Za-z_]\\w*(?:\\s*<[^<>;{}()]*>)?(?:\\s*[*&])*';
+function arduinoPreprocess(src) {
+  // blank out comments and strings (same length, newlines kept) so they can't confuse the scan
+  const bl = src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g, m => m.replace(/[^\n]/g, ' '));
+  const re = new RegExp('(^|[;}\\s])(' + RET + ')\\s+([A-Za-z_]\\w*)\\s*\\(([^;{}()]*)\\)\\s*(?:const\\s*)?\\{', 'g');
+  const protos = []; let first = -1, m;
+  while ((m = re.exec(bl))) {
+    const at = m.index + m[1].length, type = m[2].trim(), name = m[3];
+    if (/^(?:else|return|new|delete|case|do|if|while|for|switch)$/.test(type) || /^(?:if|while|for|switch|catch|sizeof)$/.test(name)) continue;
+    let depth = 0; for (let i = 0; i < at; i++) { if (bl[i] === '{') depth++; else if (bl[i] === '}') depth--; }
+    if (depth !== 0) continue;
+    if (/template\s*<[^;{}]*>\s*$/.test(bl.slice(0, at))) continue; // templates get no prototype, like in the Arduino IDE
+    if (first < 0) first = at;
+    const params = src.slice(m.index + m[0].indexOf('(', m[1].length + m[2].length + m[3].length) + 1).match(/^[^)]*/)[0]
+      .split(',').map(p => p.replace(/=[^,]*$/, '').trim()).join(', ');
+    protos.push(`${type} ${name}(${params});`);
+  }
+  let body = src;
+  if (first >= 0 && protos.length) {
+    const ls = src.lastIndexOf('\n', first - 1) + 1, line = src.slice(0, ls).split('\n').length;
+    body = src.slice(0, ls) + protos.join(' ') + `\n#line ${line} "sketch.ino"\n` + src.slice(ls);
+  }
+  return '#include <Arduino.h>\n#line 1 "sketch.ino"\n' + body;
+}
+
+const CC_FLAGS = ['--target=wasm32', '-O1', '-std=gnu++17', '-nostdinc', '-nostdinc++', '-isystem', 'inc', '-fno-exceptions', '-fno-rtti',
+  '-fno-threadsafe-statics', '-fno-color-diagnostics', '-fno-caret-diagnostics', '-ferror-limit=8'];
+const WARN_FLAGS = ['-Wall', '-Wno-unused-variable', '-Wno-unused-but-set-variable', '-Wno-unused-function', '-Wno-sign-compare',
+  '-Wno-vla-cxx-extension', '-Wno-unused-value'];
+const LINK_FLAGS = ['-nostdlib', '-Wl,--no-entry', '-Wl,--export=_Z5setupv', '-Wl,--export=_Z4loopv', '-Wl,--export=__wasm_call_ctors',
+  '-Wl,--export-table', '-Wl,--stack-first', '-Wl,-z,stack-size=1048576'];
+// The worker runs clang; it returns the output text, the exit code and the file named in "want".
+const WORKER_SRC = `let mod = null;
+self.onmessage = async e => {
+  const { id, files, args, want } = e.data;
+  self.__id = id;
+  try {
+    if (!mod) {
+      const prog = new Map();
+      mod = await import(${JSON.stringify(CLANG_URL)});
+      self.__prog = ev => { prog.set(ev.source, ev); let t = 0, d = 0; for (const p of prog.values()) { t += p.totalLength; d += p.doneLength; } self.postMessage({ id: self.__id, progress: t ? d / t : 0 }); };
+    }
+    let out = ''; const dec = new TextDecoder(); const sink = b => { if (b) out += dec.decode(b, { stream: true }); };
+    let code = 0, result = null;
+    try { const tree = await mod.runClang(args, files, { stdout: sink, stderr: sink, fetchProgress: ev => self.__prog(ev) }); result = want && tree ? tree[want] || null : null; }
+    catch (err) { if (err && typeof err.code === 'number') code = err.code; else throw err; }
+    self.postMessage({ id, out, code, result });
+  } catch (err) { self.postMessage({ id, fail: String(err && err.message || err) }); }
+};`;
+let ccWorker = null, ccReq = 0, ccReady = false;
+const ccWaiting = new Map();
+function runClangJob(args, files, want, label) {
+  return new Promise(resolve => {
+    try {
+      if (!ccWorker) {
+        // a classic worker using dynamic import(): module workers do not start in pages opened from disk
+        ccWorker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })));
+        ccWorker.onmessage = e => {
+          const w = ccWaiting.get(e.data.id); if (!w) return;
+          if ('progress' in e.data) { w.progress(e.data.progress); return; }
+          ccWaiting.delete(e.data.id); w.done(e.data);
+        };
+        ccWorker.onerror = e => { for (const [, w] of ccWaiting) w.done({ fail: e.message || 'worker failed' }); ccWaiting.clear(); ccWorker = null; };
+      }
+      const id = ++ccReq;
+      ccWaiting.set(id, { done: resolve, progress: p => setCheckStatus(`downloading C++ compiler (first time only) ${Math.round(p * 100)}%`) });
+      if (label) setCheckStatus(label);
+      ccWorker.postMessage({ id, args, files, want });
+    } catch (e) { resolve({ fail: e.message }); }
+  });
+}
+
+// core.o only changes when the core or the headers change, so it is built once and kept in the browser
+function hashText(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+const CORE_KEY = 'groveEmu.core.' + hashText(CORE_CPP + JSON.stringify(HEADERS) + CC_FLAGS.join(' '));
+let coreObj = null;
+const toB64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
+async function getCoreObj() {
+  if (coreObj) return coreObj;
+  const cached = store.get(CORE_KEY);
+  if (cached) { try { return coreObj = fromB64(cached); } catch {} }
+  const r = await runClangJob(['clang++', ...CC_FLAGS, '-fno-builtin', '-c', 'core.cpp', '-o', 'core.o'],
+    { inc: HEADERS, 'core.cpp': CORE_CPP }, 'core.o', 'preparing the Arduino libraries (first time only)…');
+  if (r.fail) return r;
+  if (r.code !== 0 || !r.result) return { fail: 'building the Arduino core failed: ' + r.out.slice(0, 300) };
+  coreObj = r.result;
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith('groveEmu.core.')) localStorage.removeItem(k); } catch {}
+  store.set(CORE_KEY, toB64(coreObj));
+  return coreObj;
+}
+
+// Put __emu_yield() at the start of every loop body, so that even a loop that calls nothing lets the page breathe.
+// Only whitespace-free insertions on the same line, so line numbers stay the same.
+function insertLoopYields(src) {
+  const bl = src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g, m => m.replace(/[^\n]/g, ' '))
+    .replace(/^[ \t]*#.*$/gm, m => ' '.repeat(m.length));
+  const ins = []; const re = /\b(?:for|while)\s*\(|\bdo\s*\{/g; let m;
+  while ((m = re.exec(bl))) {
+    if (m[0].startsWith('do')) { ins.push([m.index + m[0].length, ' __emu_yield();']); continue; }
+    let i = m.index + m[0].length, d = 1;
+    while (i < bl.length && d > 0) { if (bl[i] === '(') d++; else if (bl[i] === ')') d--; i++; }
+    let j = i; while (j < bl.length && /\s/.test(bl[j])) j++;
+    if (bl[j] === '{') ins.push([j + 1, ' __emu_yield();']);
+    else if (bl[j] === ';') { if (!/\}\s*$/.test(bl.slice(0, m.index))) ins.push([j, '{ __emu_yield(); }'], [j + 1, '', true]); }
+    else {
+      let k = j, dd = 0;
+      for (; k < bl.length; k++) { const c = bl[k]; if ('([{'.includes(c)) dd++; else if (')]}'.includes(c)) dd--; else if (c === ';' && dd === 0) break; }
+      if (k < bl.length) ins.push([j, '{ __emu_yield(); '], [k + 1, ' }']);
+    }
+  }
+  // also at the start of every top-level function: the optimiser can turn endless recursion into a loop that calls nothing
+  const fre = new RegExp('(^|[;}\\s])(' + RET + ')\\s+([A-Za-z_]\\w*)\\s*\\([^;{}()]*\\)\\s*(?:const\\s*)?\\{', 'g');
+  while ((m = fre.exec(bl))) {
+    if (/^(?:else|return|new|delete|case|do|if|while|for|switch)$/.test(m[2].trim()) || /^(?:if|while|for|switch|catch|sizeof)$/.test(m[3])) continue;
+    let depth = 0; for (let i = 0; i < m.index; i++) { if (bl[i] === '{') depth++; else if (bl[i] === '}') depth--; }
+    if (depth === 0) ins.push([m.index + m[0].length, ' __emu_yield();']);
+  }
+  let out = src;
+  for (const [pos, text, del] of ins.sort((a, b) => b[0] - a[0])) out = del ? out : out.slice(0, pos) + text + out.slice(pos);
+  // an empty "while (...);" body: replace the ';' itself
+  return out.replace(/\{ __emu_yield\(\); \};/g, '{ __emu_yield(); }');
+}
+
+// Compile and link a sketch. Returns { out, code, wasm } or { fail }.
+async function buildSketch(src) {
+  const core = await getCoreObj();
+  if (core.fail) return core;
+  const r = await runClangJob(['clang++', ...CC_FLAGS, ...WARN_FLAGS, ...LINK_FLAGS, 'sketch.ino.cpp', 'core.o', '-o', 'sketch.wasm'],
+    { inc: HEADERS, 'sketch.ino.cpp': arduinoPreprocess(insertLoopYields(src)), 'core.o': core }, 'sketch.wasm', ccReady ? 'compiling…' : 'loading C++ compiler…');
+  return r.fail ? r : { out: r.out, code: r.code, wasm: r.result };
+}
+
+// ===== Running the compiled program =====
+// The program calls these "env" functions for everything it does with the hardware; they drive the same
+// kit model the widgets show. delay() and yield() pause the program (JSPI) so the page keeps running.
+const hasJSPI = typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function';
+let wasmEx = null, wasmObjs = [];
+const wmem = () => wasmEx.memory.buffer;
+const dv = () => new DataView(wmem());
+const cstr = p => { const u = new Uint8Array(wmem()); let e = p; while (u[e]) e++; return new TextDecoder().decode(u.subarray(p, e)); };
+const serDec = new TextDecoder();
+const MATH1 = [Math.sin, Math.cos, Math.tan, Math.asin, Math.acos, Math.atan, Math.sinh, Math.cosh, Math.tanh, Math.exp, Math.log, Math.log10, Math.log2, Math.cbrt];
+const MATH2 = [Math.atan2, Math.pow, (a, b) => a % b, Math.hypot];
+function wasmImports() {
+  return { env: {
+    pinMode: (p, m) => api.pinMode(p, m),
+    digitalWrite: (p, v) => api.digitalWrite(p, v),
+    digitalRead: p => api.digitalRead(p),
+    analogRead: p => api.analogRead(p),
+    analogWrite: (p, v) => api.analogWrite(p, v),
+    analogReadResolution: b => api.analogReadResolution(b),
+    millis: () => api.millis() >>> 0,
+    micros: () => api.micros() >>> 0,
+    delay: new WebAssembly.Suspending(ms => {
+      if (inIsr) throw new Error('delay() cannot be used inside an interrupt function');
+      return delay(ms >>> 0);
+    }),
+    yield: new WebAssembly.Suspending(() => {
+      if (inIsr) return; // an interrupt function runs to the end without pausing
+      if (!running) throw STOP;
+      const t = performance.now();
+      if (t - lastYield > 12) { lastYield = t; return macro().then(() => { if (!running) throw STOP; }); }
+    }),
+    tone: (p, f, d) => api.tone(p, f >>> 0, d >>> 0), noTone: p => api.noTone(p),
+    random: () => Math.random(),
+    attachInterrupt: (p, fi, mode) => {
+      st.irq[p] = { mode, fn: () => {
+        // started in "pausable" mode because the function may reach a yield point; it never actually pauses
+        inIsr = true;
+        let p;
+        try { p = WebAssembly.promising(wasmEx.__indirect_function_table.get(fi))(); }
+        finally { inIsr = false; }
+        p.catch(e => { if (running && e !== STOP) { sysMsg('ERROR: ' + wasmErrMsg(e)); stop(); } });
+      } };
+      lastDigital[p] = readDigital(p);
+    },
+    detachInterrupt: p => { delete st.irq[p]; },
+    serialWrite: (p, n) => serOut(serDec.decode(new Uint8Array(wmem(), p, n), { stream: true })),
+    serialAvailable: () => rx.length,
+    serialRead: () => { if (!rx.length) return -1; const c = rx.charCodeAt(0) & 255; rx = rx.slice(1); return c; },
+    serialPeek: () => rx.length ? rx.charCodeAt(0) & 255 : -1,
+    math1: (op, x) => MATH1[op](x), math2: (op, x, y) => MATH2[op](x, y),
+    servo: (op, id, a, b, c) => {
+      if (op === 0) { wasmObjs.push(new Servo()); return wasmObjs.length - 1; }
+      const s = wasmObjs[id];
+      switch (op) {
+        case 1: s.attach(a); s.minUs = b; s.maxUs = c; return 1;
+        case 2: s.detach(); return 0;
+        case 3: s.write(a); return 0;
+        case 4: s.writeMicroseconds(a); return 0;
+        case 5: return s.read();
+        case 6: return Math.round(544 + s.angle / 180 * (2400 - 544));
+        case 7: return s.attached() ? 1 : 0;
+      }
+      return 0;
+    },
+    neo: (op, id, a, b, c) => {
+      if (op === 0) { wasmObjs.push(new Adafruit_NeoPixel(a, b)); return wasmObjs.length - 1; }
+      const s = wasmObjs[id];
+      switch (op) {
+        case 1: s.show(); return 0;
+        case 2: s.setPin(a); return 0;
+        case 3: s.updateLength(a); return 0;
+        case 4: s.setPixelColor(a, b >>> 0); return 0;
+        case 5: s.fill(a >>> 0, b, c); return 0;
+        case 6: s.setBrightness(a); return 0;
+        case 7: s.clear(); return 0;
+        case 8: return s.getBrightness();
+        case 9: return s.pin;
+        case 10: return s.numPixels();
+        case 11: return s.getPixelColor(a) | 0;
+      }
+      return 0;
+    },
+    lcd: (op, a, b, c) => {
+      const L = wasmLcd || (wasmLcd = new rgb_lcd());
+      switch (op) {
+        case 0: L.begin(a, b); break; case 1: L.clear(); break; case 2: L.home(); break;
+        case 3: a ? L.display() : L.noDisplay(); break; case 4: a ? L.blink() : L.noBlink(); break;
+        case 5: a ? L.cursor() : L.noCursor(); break; case 6: a ? L.scrollDisplayRight() : L.scrollDisplayLeft(); break;
+        case 7: L.setCursor(a, b); break; case 8: L.write(a); break; case 9: L.setRGB(a, b, c); break;
+      }
+    },
+    aht: (hp, tp) => {
+      if (!isI2C('dht')) { warnOnce('Temp. & humidity sensor is not connected.'); return 0; }
+      const d = dv(); d.setFloat32(hp, (V.dhtH + (Math.random() - .5) * .2) / 100, true); d.setFloat32(tp, V.dhtT + (Math.random() - .5) * .1, true); return 1;
+    },
+    dht: (hp, tp) => {
+      if (!isI2C('dht')) { warnOnce('Temp. & humidity sensor is not connected.'); return 0; }
+      const d = dv(); d.setFloat32(hp, V.dhtH + (Math.random() - .5) * .2, true); d.setFloat32(tp, V.dhtT + (Math.random() - .5) * .1, true); return 1;
+    },
+    imuAccel: i => isI2C('imu') ? accel()[i] : 0,
+    imuGyro: i => isI2C('imu') ? gyro()[i] : 0,
+    imuMag: p => { if (!isI2C('imu')) return 1; const m = magField(), d = dv(); for (let i = 0; i < 3; i++) d.setInt32(p + 4 * i, m[i], true); return 0; },
+    imuConnected: () => isI2C('imu') ? 1 : 0,
+    abort: p => { throw new Error(cstr(p)); },
+  } };
+}
+let wasmLcd = null, inIsr = false;
+const demangle = s => { const m = s.match(/^_Z(\d+)(\w+)/); return m ? m[2].slice(0, +m[1]) + '()' : s; };
+function wasmErrMsg(e) {
+  let msg = e && e.message || String(e);
+  if (/divide by zero/i.test(msg)) msg = 'division by zero (an integer divided by 0)';
+  else if (/out of bounds/i.test(msg)) msg = 'memory access out of bounds (array index too big, a bad pointer, or recursion that never stops)';
+  else if (/unreachable/i.test(msg)) msg = 'the program crashed (a function that should return a value did not, or another invalid operation)';
+  else if (/call stack/i.test(msg)) msg = 'stack overflow (recursion that never stops?)';
+  const fn = String(e && e.stack || '').match(/at (_Z\w+|[A-Za-z_]\w*) \(wasm/);
+  return msg + (fn ? ' in ' + demangle(fn[1]) : '');
+}
+async function runCompiled(bytes, me) {
+  wasmObjs = []; wasmLcd = null;
+  const { instance } = await WebAssembly.instantiate(bytes, wasmImports());
+  wasmEx = instance.exports;
+  running = true; t0 = performance.now(); lastYield = t0; setStatus();
+  try {
+    await WebAssembly.promising(wasmEx.__wasm_call_ctors)();
+    const setup = WebAssembly.promising(wasmEx._Z5setupv), loop = WebAssembly.promising(wasmEx._Z4loopv);
+    await setup();
+    while (running && me === runId) { await loop(); await __yield(); }
+  } catch (e) {
+    if (e === STOP || me !== runId) return;
+    sysMsg('ERROR while running: ' + wasmErrMsg(e));
+    stop();
+  }
+}
+function setCheckStatus(t) { const s = $('status'); s.textContent = t; s.className = ''; }
+// clang prints "sketch.ino:3:14: error: expected ';' after expression"
+function parseDiagnostics(out) {
+  const diags = [];
+  for (const line of out.split('\n')) {
+    const m = line.match(/^(?:.*?)([\w.\/-]+):(\d+):(\d+): (error|warning|fatal error): (.*)$/);
+    if (m) diags.push({ file: m[1], line: +m[2], col: +m[3], kind: m[4].replace('fatal ', ''), msg: m[5] });
+    else if (/^.*note: /.test(line) && diags.length) diags[diags.length - 1].note = line.replace(/^.*note: /, '');
+  }
+  return diags;
+}
+// friendlier explanations of the errors students make most
+function explain(d) {
+  const t = d.msg;
+  if (/^'([^']+)' file not found/.test(t)) return `Library "${t.match(/'([^']+)'/)[1]}" is not available in the emulator (only the Grove kit libraries are).`;
+  if (/expected ';'/.test(t)) return t + '  (a ; is missing, often at the end of the line before)';
+  if (/use of undeclared identifier/.test(t)) return t + '  (typo, or a variable used before it is declared?)';
+  if (/unknown type name/.test(t)) return t + '  (misspelled type? e.g. int, float, bool, String)';
+  if (/no matching function for call/.test(t)) return t + '  (wrong number or type of arguments?)';
+  if (/cannot initialize a variable of type/.test(t)) return t + '  (the value does not fit this type)';
+  return t;
+}
+
+// linker errors have no line number: "wasm-ld: error: sketch.o: undefined symbol: foo(int)"
+function explainLink(out) {
+  const u = out.match(/undefined symbol: ([^\n]+)/);
+  if (/not found: _Z5setupv/.test(out) || (u && /^setup\(\)/.test(u[1]))) return 'void setup() is missing.';
+  if (/not found: _Z4loopv/.test(out) || (u && /^loop\(\)/.test(u[1]))) return 'void loop() is missing.';
+  if (u) return `${u[1]} is declared or used, but never defined (missing function body or a typo in its name?).`;
+  if (/duplicate symbol: ([^\n]+)/.test(out)) return `${out.match(/duplicate symbol: ([^\n]+)/)[1]} is defined twice.`;
+  return out.trim().split('\n').slice(0, 4).join('\n');
+}
+
+async function run() {
+  stop(); ensureAudio(); resetBoard();
+  const src = getCode();
+  store.set('groveEmu.code', src);
+  if ($('strict').checked) {
+    const me = ++runId;
+    const r = await buildSketch(src);
+    if (me !== runId) return; // stopped or restarted meanwhile
+    if (r.fail) {
+      warnOnce('The C++ compiler could not be loaded (offline?), so the code runs in the simpler simulator without a C++ check. ' + r.fail);
+    } else {
+      ccReady = true;
+      const diags = parseDiagnostics(r.out).filter(d => /sketch\.ino/.test(d.file) || d.kind === 'error');
+      const errs = diags.filter(d => d.kind === 'error');
+      for (const d of diags.slice(0, 8))
+        sysMsg(`${d.kind === 'error' ? 'Compile error' : 'Warning'} on line ${d.line}: ${explain(d)}`);
+      if (r.code !== 0 || errs.length || !r.wasm) {
+        if (!errs.length) sysMsg('Compile error: ' + explainLink(r.out));
+        sysMsg(`Not uploaded: ${errs.length || 1} error${errs.length > 1 ? 's' : ''}. The Arduino IDE would refuse this code too.`);
+        setStatus();
+        if (errs[0] && /sketch\.ino/.test(errs[0].file)) gotoLine(errs[0].line);
+        return;
+      }
+      if (hasJSPI) {
+        sysMsg(`Compiled OK (${r.wasm.length} bytes${diags.length ? `, ${diags.length} warning${diags.length === 1 ? '' : 's'}` : ''}), uploading.`);
+        window.__lastWasm = r.wasm;
+        return runCompiled(r.wasm, me);
+      }
+      warnOnce('Compiled OK, but this browser cannot run compiled programs yet (it needs WebAssembly JSPI, e.g. a recent Chrome or Edge), so the simpler simulator runs your code.');
+    }
+    setStatus();
+  }
+  for (const m of src.matchAll(/#include\s*[<"]([^>"]+)[>"]/g)) {
+    if (!/^(Arduino|Wire|Servo|rgb_lcd|Adafruit_NeoPixel|DHT|Grove_Temperature_And_Humidity_Sensor|LSM6DS3|LIS3DHTR|AHT20|ICM20600|AK09918|math|SPI)\.h$/i.test(m[1]))
+      sysMsg(`Library "${m[1]}" is not simulated; the code may fail.`);
+  }
+  let js, factory;
+  try { js = transpile(src); factory = new AsyncFunction('__api', 'with(__api){' + js + '\n;return {setup: typeof setup === "function" ? setup : null, loop: typeof loop === "function" ? loop : null};}'); }
+  catch (e) {
+    const ln = js ? findSyntaxLine(js) : 0;
+    sysMsg('Compile error' + (ln ? ' on line ' + ln : '') + ': ' + e.message + ' — check your brackets { } ( ) and semicolons.');
+    if (ln) gotoLine(ln);
+    return;
+  }
+  window.__lastJS = js; // handy for debugging in the console
+  running = true; const me = ++runId; t0 = performance.now(); lastYield = t0;
+  setStatus();
+  try {
+    const prog = await factory(api);
+    if (!prog.setup || !prog.loop) throw new Error('Both void setup() and void loop() are required.');
+    await prog.setup();
+    while (running && me === runId) { await prog.loop(); await __yield(); }
+  } catch (e) { if (me === runId) onErr(e); }
+}
+function stop() {
+  running = false; runId++;
+  for (const o of pending) { clearTimeout(o.t); o.rej(STOP); }
+  pending.clear(); updateSound(); setStatus();
+}
+function setStatus() { const s = $('status'); s.textContent = running ? '● program running' : 'stopped'; s.className = running ? 'run' : ''; }
+
+// ===== Editor =====
+const ed = $('code'), gut = $('gutter');
+function getCode() { return ed.value; }
+function setCode(s) { ed.value = s; updGutter(); }
+function updGutter() { const n = ed.value.split('\n').length; let t = ''; for (let i = 1; i <= n; i++) t += i + '\n'; gut.textContent = t; gut.scrollTop = ed.scrollTop; }
+function gotoLine(n) {
+  const lines = ed.value.split('\n'); let a = 0;
+  for (let i = 0; i < n - 1 && i < lines.length; i++) a += lines[i].length + 1;
+  ed.focus(); ed.setSelectionRange(a, a + (lines[n - 1] || '').length);
+  ed.scrollTop = Math.max(0, (n - 5) * 19.5);
+}
+ed.addEventListener('input', () => { updGutter(); store.set('groveEmu.code', ed.value); });
+ed.addEventListener('scroll', () => { gut.scrollTop = ed.scrollTop; });
+ed.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); return; }
+  const s = ed.selectionStart, v = ed.value;
+  if (e.key === 'Tab') { e.preventDefault(); ed.setRangeText('  ', s, ed.selectionEnd, 'end'); updGutter(); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    const ls = v.lastIndexOf('\n', s - 1) + 1, ind = v.slice(ls, s).match(/^\s*/)[0];
+    const extra = /\{\s*$/.test(v.slice(ls, s)) ? '  ' : '';
+    ed.setRangeText('\n' + ind + extra, s, ed.selectionEnd, 'end'); updGutter();
+  } else if (e.key === '}') {
+    const ls = v.lastIndexOf('\n', s - 1) + 1;
+    if (/^\s+$/.test(v.slice(ls, s))) { e.preventDefault(); ed.setRangeText(v.slice(ls, s).slice(2) + '}', ls, s, 'end'); }
+  }
+});
+
+// ===== UI: modules =====
+function portSelect(m) {
+  const opts = ['-', ...m.ports].map(p => `<option value="${p}">${p === '-' ? 'not connected' : p === 'I2C' ? 'I2C (connected)' : 'port ' + p}</option>`).join('');
+  return `<select data-port="${m.id}">${opts}</select>`;
+}
+const hold = `<label class="small"><input type="checkbox" class="latch"> hold</label>`;
+const BODY = {
+  button: `<button class="push" data-hold="button" aria-label="Press the button"></button>${hold}`,
+  touch: `<div class="touchpad" data-hold="touch">👆 Touch</div>${hold}`,
+  buzzer: `<div class="row"><span class="spk">🔈</span><span class="ro"></span></div>`,
+  servo: `<svg viewBox="0 0 120 80" width="150" height="100"><rect x="30" y="34" width="60" height="34" rx="4" fill="#222"/><text x="60" y="60" fill="#c33" font-size="9" text-anchor="middle">SERVO</text>
+    <g class="horn" transform="rotate(0 60 34)"><rect x="56" y="4" width="8" height="34" rx="4" fill="#eee" stroke="#999"/></g><circle cx="60" cy="34" r="6" fill="#ddd" stroke="#888"/></svg><div class="ro"></div>`,
+  neopixel: `<div class="strip"></div><div class="ro"></div>`,
+  rotary: `<div class="row"><div class="knob"><i></i></div><input type="range" min="0" max="300" data-v="rotary"></div><div class="ro"></div>`,
+  slide: `<input type="range" min="0" max="1023" data-v="slide"><div class="ro"></div>`,
+  light: `<div class="row">🌑<input type="range" min="0" max="100" data-v="light">☀️</div><div class="ro"></div>`,
+  temp: `<div class="row">❄️<input type="range" min="-20" max="60" step="0.5" data-v="temp">🔥</div><div class="ro"></div>`,
+  sound: `<div class="row">🔇<input type="range" min="0" max="100" data-v="sound">📢</div><button class="clap">👏 Clap!</button><div class="ro"></div>`,
+  joystick: `<div class="joy"><i></i></div><button class="jclick" style="align-self:center">Click (press)</button><div class="ro"></div>`,
+  lcd: `<div class="lcd"><div class="scr"></div></div><div class="ro"></div>`,
+  dht: `<div class="small">Temperature</div><input type="range" min="0" max="50" step="0.1" data-v="dhtT"><div class="small">Humidity</div><input type="range" min="0" max="100" step="0.5" data-v="dhtH"><div class="ro"></div>`,
+  imu: `<div class="small">Tilt forward/back</div><input type="range" min="-90" max="90" data-v="pitch"><div class="small">Tilt left/right</div><input type="range" min="-180" max="180" data-v="roll"><div class="small">Compass heading</div><input type="range" min="0" max="359" data-v="heading"><button class="shake">📳 Shake</button><div class="ro"></div>`,
+};
+const cards = {};
+function buildModules() {
+  const box = $('mods');
+  for (const m of MODULES) {
+    const c = document.createElement('div'); c.className = 'card';
+    c.innerHTML = `<div class="hd"><div><div class="nm"><span class="ic">${ICON[m.id]}</span>${m.name}</div><div class="sub">${m.sub}</div></div>`
+      + `<div class="row" style="gap:4px">${portSelect(m)}<button class="unplug" title="Unplug and put back in the tray" aria-label="Unplug ${m.name}">⏏</button></div></div>${BODY[m.id]}<div class="warn"></div>`;
+    c.hidden = true;
+    box.appendChild(c); cards[m.id] = c;
+    const sel = c.querySelector('select'); sel.value = cfg[m.id];
+    sel.onchange = () => { cfg[m.id] = sel.value; store.set('groveEmu.wiring', JSON.stringify(cfg)); updPorts(); updateSound(); };
+    c.querySelector('.unplug').onclick = () => plugIn(m.id, '-');
+    c.querySelectorAll('input[data-v]').forEach(r => { r.value = V[r.dataset.v]; r.oninput = () => { V[r.dataset.v] = +r.value; }; });
+    const h = c.querySelector('[data-hold]');
+    if (h) {
+      const k = h.dataset.hold, latch = c.querySelector('.latch');
+      // a press lasts at least 80 ms, so even a very quick click is seen by the sketch
+      let downAt = 0, upTimer = 0;
+      const set = v => { clearTimeout(upTimer); V[k] = v || latch.checked; };
+      h.addEventListener('pointerdown', e => { h.setPointerCapture(e.pointerId); downAt = performance.now(); set(true); });
+      ['pointerup', 'pointercancel'].forEach(ev => h.addEventListener(ev, () => {
+        const left = 80 - (performance.now() - downAt);
+        if (left > 0) upTimer = setTimeout(() => set(false), left); else set(false);
+      }));
+      latch.onchange = () => set(false);
+    }
+  }
+  const clap = cards.sound.querySelector('.clap'); clap.onclick = () => { V.clapUntil = performance.now() + 250; };
+  cards.imu.querySelector('.shake').onclick = () => { V.shakeUntil = performance.now() + 700; };
+  const jb = cards.joystick.querySelector('.jclick');
+  let jAt = 0; jb.addEventListener('pointerdown', () => { V.jclick = true; jAt = performance.now(); });
+  ['pointerup', 'pointerleave'].forEach(ev => jb.addEventListener(ev, () => setTimeout(() => V.jclick = false, Math.max(0, 80 - (performance.now() - jAt)))));
+  const joy = cards.joystick.querySelector('.joy'), jk = joy.querySelector('i');
+  const jmove = e => { const r = joy.getBoundingClientRect();
+    const x = clamp((e.clientX - r.left) / r.width, 0, 1), y = clamp((e.clientY - r.top) / r.height, 0, 1);
+    V.jx = Math.round(200 + x * 600); V.jy = Math.round(200 + (1 - y) * 600);
+    jk.style.left = (x * r.width - 23) + 'px'; jk.style.top = (y * r.height - 23) + 'px'; };
+  joy.addEventListener('pointerdown', e => { joy.setPointerCapture(e.pointerId); jmove(e); joy.onpointermove = jmove; });
+  joy.addEventListener('pointerup', () => { joy.onpointermove = null; V.jx = V.jy = 512; jk.style.left = jk.style.top = '42px'; });
+  const scr = cards.lcd.querySelector('.scr'); for (let i = 0; i < 32; i++) scr.appendChild(document.createElement('span'));
+}
+function updPorts() {
+  const use = {};
+  for (const m of MODULES) {
+    const p = cfg[m.id]; if (p === '-') continue;
+    (use[p] = use[p] || []).push(m.name);
+    if (m.id === 'joystick') { const n = 'A' + (+p[1] + 1); if (PORTS[n]) (use[n + '*'] = use[n + '*'] || []).push(m.name); }
+  }
+  const names = ['A0','A1','A2','A3','D2','D3','D4','D5','D6','D7','D8','D9','UART','I2C','I2C ','I2C  '];
+  $('ports').innerHTML = names.map(n => {
+    const k = n.trim(); let list = use[k] || [];
+    if (k === 'I2C') list = n === 'I2C' ? list : [];
+    const conflict = k !== 'I2C' && list.length > 1;
+    return `<div class="port ${list.length ? 'used' : ''} ${conflict ? 'conflict' : ''}" data-port="${k}"><b>${k}</b>${list.join(', ')}${conflict ? '<br>⚠ conflict!' : ''}</div>`;
+  }).join('');
+  // connected modules get their full card (animated when they arrive), the others wait in the tray
+  const tray = $('tray'); tray.textContent = '';
+  let shown = 0;
+  for (const m of MODULES) {
+    const on = cfg[m.id] !== '-', c = cards[m.id];
+    if (on && c.hidden) { c.hidden = false; c.classList.remove('pop-in'); void c.offsetWidth; c.classList.add('pop-in'); }
+    else if (!on) c.hidden = true;
+    if (on) { shown++; continue; }
+    const chip = document.createElement('button');
+    chip.type = 'button'; chip.className = 'chip'; chip.draggable = true; chip.dataset.id = m.id;
+    chip.title = `${m.name} (${m.sub}). Click to choose a port, or drag it onto the shield.`;
+    chip.innerHTML = `<span class="ic">${ICON[m.id]}</span><span>${m.name}</span><span class="k">${m.ports[0] === 'I2C' ? 'I2C' : m.ports === AP ? 'analog' : 'digital'}</span>`;
+    chip.onclick = e => { e.stopPropagation(); cards[m.id].querySelector('select')._open(chip); };
+    chip.ondragstart = e => {
+      e.dataTransfer.setData('text/plain', m.id); e.dataTransfer.effectAllowed = 'move'; chip.classList.add('dragging');
+      document.querySelectorAll('#ports .port').forEach(p => p.classList.toggle('can-drop', m.ports.includes(p.dataset.port)));
+    };
+    chip.ondragend = () => { chip.classList.remove('dragging'); document.querySelectorAll('#ports .port').forEach(p => p.classList.remove('can-drop', 'drop-over')); };
+    tray.appendChild(chip);
+  }
+  $('modsEmpty').hidden = shown > 0;
+}
+// plug a module into a port ('-' = unplug), exactly as if it was chosen in its port menu
+function plugIn(id, port) {
+  const sel = cards[id].querySelector('select'); sel.value = port; sel._sync(); sel.dispatchEvent(new Event('change'));
+}
+// dropping a tray chip on a shield port plugs it in there, if that kind of port fits the module
+$('ports').addEventListener('dragover', e => {
+  const p = e.target.closest('.port'); if (!p || !p.classList.contains('can-drop')) return;
+  e.preventDefault(); document.querySelectorAll('#ports .drop-over').forEach(x => x !== p && x.classList.remove('drop-over')); p.classList.add('drop-over');
+});
+$('ports').addEventListener('dragleave', e => { const p = e.target.closest('.port'); if (p && !p.contains(e.relatedTarget)) p.classList.remove('drop-over'); });
+$('ports').addEventListener('drop', e => {
+  const p = e.target.closest('.port'), id = e.dataTransfer.getData('text/plain');
+  if (!p || !MOD[id] || !MOD[id].ports.includes(p.dataset.port)) return;
+  e.preventDefault(); plugIn(id, p.dataset.port);
+  setTimeout(() => cards[id].scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+});
+
+// ===== Render loop =====
+const hex = c => '#' + (c >>> 0 & 0xFFFFFF).toString(16).padStart(6, '0');
+let prevIMU = { p: 0, r: 0, t: performance.now() }, lastLcdKey = '';
+function ro(id, t) { const e = cards[id].querySelector('.ro'); if (e && e.textContent !== t) e.textContent = t; }
+function warn(id, t) { const e = cards[id].querySelector('.warn'); if (e.textContent !== t) e.textContent = t; }
+const pinName = p => p >= 14 ? 'A' + (p - 14) : 'D' + p;
+function frame() {
+  const now = performance.now();
+  // IMU gyro from how fast the sliders move
+  const dt = (now - prevIMU.t) / 1000 || 1e-3;
+  V.gy = V.gy * .8 + ((V.pitch - prevIMU.p) / dt) * .2; V.gx = V.gx * .8 + ((V.roll - prevIMU.r) / dt) * .2; V.gz *= .8;
+  prevIMU = { p: V.pitch, r: V.roll, t: now };
+
+  $('ledL').classList.toggle('on', running && !!st.out[13]);
+  $('ledTX').classList.toggle('on', now - txAt < 60);
+
+  for (const id of ['rotary', 'slide', 'light', 'temp', 'sound']) {
+    const p = pinsOf(id);
+    const extra = id === 'temp' ? ` (${V.temp.toFixed(1)} °C)` : id === 'rotary' ? ` (${V.rotary}°)` : id === 'light' ? ` (${V.light}%)` : '';
+    ro(id, p ? `${pinName(p[0])} = ${Math.round(modAnalog(id, 0))}${extra}` : 'not connected');
+  }
+  cards.rotary.querySelector('.knob i').style.transform = `rotate(${V.rotary - 150}deg)`;
+  const jp = pinsOf('joystick');
+  ro('joystick', jp ? `${pinName(jp[0])} (X) = ${modAnalog('joystick', 0)}   ${pinName(jp[1])} (Y) = ${V.jy}` : 'not connected');
+  for (const id of ['button', 'touch']) {
+    const el = cards[id].querySelector('[data-hold]'); el.classList.toggle('dn', V[id]);
+  }
+  ro('dht', isI2C('dht') ? `${V.dhtT.toFixed(1)} °C   ${V.dhtH.toFixed(1)} %` : 'not connected');
+  const a = accel();
+  ro('imu', isI2C('imu') ? `ax ${a[0].toFixed(2)}  ay ${a[1].toFixed(2)}  az ${a[2].toFixed(2)} g` : 'not connected');
+
+  // buzzer
+  const f = running ? buzzFreq() : 0;
+  cards.buzzer.querySelector('.spk').classList.toggle('on', f > 0);
+  cards.buzzer.querySelector('.spk').textContent = f > 0 ? '🔊' : '🔈';
+  ro('buzzer', f > 0 ? `♪ ${Math.round(f)} Hz` : 'silent');
+
+  // servo
+  const sp = pinsOf('servo');
+  const sv = sp && st.servos.find(s => s.pin === sp[0]);
+  const ang = sv ? sv.angle : 90;
+  cards.servo.querySelector('.horn').setAttribute('transform', `rotate(${ang - 90} 60 34)`);
+  ro('servo', sv ? `angle: ${Math.round(ang)}°` : 'no signal');
+  const sOther = st.servos.find(s => s.pin >= 0 && (!sp || s.pin !== sp[0]));
+  warn('servo', sOther ? `Code drives a servo on ${pinName(sOther.pin)}, but the servo is on ${cfg.servo}.` : '');
+
+  // neopixel
+  const np = pinsOf('neopixel');
+  const strip = np && st.strips.find(s => s.pin === np[0]);
+  const box = cards.neopixel.querySelector('.strip');
+  const n = strip ? strip.n : 10;
+  while (box.children.length < n) { const d = document.createElement('div'); d.className = 'px'; box.appendChild(d); }
+  while (box.children.length > n) box.lastChild.remove();
+  for (let i = 0; i < n; i++) {
+    const el = box.children[i];
+    let c = strip ? strip.shown[i] || 0 : 0;
+    const br = strip && strip.shownBr !== undefined ? strip.shownBr : 255;
+    // show the hue at full strength; brightness (colour level x setBrightness) sets how strongly it glows,
+    // like a real LED, which still looks clearly lit at low settings
+    const r = c >> 16 & 255, g = c >> 8 & 255, b = c & 255, mx = Math.max(r, g, b);
+    const lvl = Math.sqrt(mx / 255 * br / 255);
+    const k = mx ? 255 / mx : 0, a = (0.3 + 0.7 * lvl).toFixed(2);
+    const col = mx && br ? `rgba(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)},${a})` : '#222';
+    if (el.dataset.c !== col) { el.dataset.c = col; el.style.background = col; el.style.boxShadow = mx && br ? `0 0 ${Math.round(4 + 10 * lvl)}px ${col}` : 'none'; }
+  }
+  ro('neopixel', strip ? `${n} LEDs on ${pinName(strip.pin)}` : 'no data');
+  const stOther = st.strips.find(s => !np || s.pin !== np[0]);
+  warn('neopixel', stOther ? `Code uses pin ${pinName(stOther.pin)}, but the strip is on ${cfg.neopixel}.` : '');
+
+  // LCD
+  const on = isI2C('lcd') && LCD.begun;
+  const blinkOn = Math.floor(now / 500) % 2 === 0;
+  const key = on + LCD.buf[0].join('') + LCD.buf[1].join('') + LCD.rgb + LCD.on + LCD.offset + LCD.col + LCD.row + (LCD.cursor || LCD.blink && blinkOn);
+  if (key !== lastLcdKey) {
+    lastLcdKey = key;
+    const scr = cards.lcd.querySelector('.scr');
+    const [r, g, b] = LCD.rgb;
+    scr.style.background = on ? `rgb(${40 + r * .75},${40 + g * .75},${40 + b * .75})` : '#3a403a';
+    for (let i = 0; i < 32; i++) {
+      const row = i >> 4, col = ((i & 15) + LCD.offset) % 40, sp2 = scr.children[i];
+      sp2.textContent = on && LCD.on ? LCD.buf[row][col] : '';
+      sp2.classList.toggle('cur', on && LCD.on && row === LCD.row && col === LCD.col && (LCD.cursor || (LCD.blink && blinkOn)));
+    }
+  }
+  ro('lcd', isI2C('lcd') ? (LCD.begun ? `backlight RGB(${LCD.rgb.join(', ')})` : 'waiting for lcd.begin()') : 'not connected');
+
+  flushSerial(); if ($('plotTgl').checked) drawPlot();
+  requestAnimationFrame(frame);
+}
+
+// ===== Serial monitor + plotter =====
+const serEl = $('serial');
+function flushSerial() {
+  if (!serBuf) return;
+  serText = (serText + serBuf).slice(-30000); serBuf = '';
+  serEl.textContent = serText;
+  if ($('autoScroll').checked) serEl.scrollTop = serEl.scrollHeight;
+}
+const series = new Map(), PLOT_N = 400, PCOL = ['#4fc3f7', '#ff8a65', '#aed581', '#ffd54f', '#ba68c8', '#f06292'];
+function plotLine(line) {
+  const toks = line.trim().split(/[\s,;]+/).filter(Boolean); if (!toks.length) return;
+  const vals = [];
+  for (let i = 0; i < toks.length; i++) {
+    const m = toks[i].match(/^(?:([^:]+):)?(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)$/i);
+    if (!m) return;
+    vals.push([m[1] || 'value' + (i + 1), +m[2]]);
+  }
+  for (const [k, v] of vals) { if (!series.has(k)) series.set(k, []); const a = series.get(k); a.push(v); if (a.length > PLOT_N) a.shift(); }
+}
+function drawPlot() {
+  const cv = $('plot'), w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w) { cv.width = w; cv.height = h; }
+  const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, w, h);
+  let lo = Infinity, hi = -Infinity;
+  for (const a of series.values()) for (const v of a) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  if (lo === Infinity) { ctx.fillStyle = '#789'; ctx.fillText('No numbers received yet (e.g. Serial.println(value);)', 10, 20); return; }
+  if (hi - lo < 1e-6) { hi += 1; lo -= 1; }
+  const pad = (hi - lo) * .08; lo -= pad; hi += pad;
+  const Y = v => h - 16 - (v - lo) / (hi - lo) * (h - 26);
+  ctx.font = '11px monospace'; ctx.fillStyle = '#789';
+  ctx.fillText(hi.toFixed(1), 4, 12); ctx.fillText(lo.toFixed(1), 4, h - 4);
+  let i = 0, lx = 60;
+  for (const [k, a] of series) {
+    const col = PCOL[i++ % PCOL.length]; ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath();
+    a.forEach((v, j) => { const x = w - (a.length - 1 - j) * (w / PLOT_N); j ? ctx.lineTo(x, Y(v)) : ctx.moveTo(x, Y(v)); });
+    ctx.stroke(); ctx.fillStyle = col; ctx.fillText('■ ' + k, lx, 12); lx += ctx.measureText('■ ' + k).width + 14;
+  }
+}
+$('plotTgl').onchange = e => { $('plot').style.display = e.target.checked ? 'block' : 'none'; serEl.style.display = e.target.checked ? 'none' : 'block'; };
+$('clrBtn').onclick = () => { serText = ''; serBuf = ''; serEl.textContent = ''; series.clear(); };
+const send = () => { const i = $('serInput'); rx += i.value + '\n'; serOut(''); i.value = ''; };
+$('sendBtn').onclick = send;
+$('serInput').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+// ===== Toolbar =====
+$('runBtn').onclick = run;
+$('stopBtn').onclick = stop;
+$('resetBtn').onclick = () => { if (running) run(); };
+$('unplugBtn').onclick = () => setWiring({});
+$('mute').onchange = updateSound;
+$('strict').checked = store.get('groveEmu.strict') !== '0';
+$('strict').onchange = e => store.set('groveEmu.strict', e.target.checked ? '1' : '0');
+const ALL_EX = [...EXAMPLES.map(ex => ({ ...ex, group: 'Grove kit examples' })), ...EAVP];
+const groups = {};
+ALL_EX.forEach((ex, i) => {
+  if (!groups[ex.group]) { groups[ex.group] = document.createElement('optgroup'); groups[ex.group].label = ex.group; $('exSel').appendChild(groups[ex.group]); }
+  const o = document.createElement('option'); o.value = i; o.textContent = ex.name; groups[ex.group].appendChild(o);
+});
+$('exSel').onchange = e => {
+  const ex = ALL_EX[e.target.value]; if (!ex) return;
+  stop(); setCode(ex.code); $('fname').textContent = ex.name.replace(/ /g, '_') + '.ino'; store.set('groveEmu.code', ex.code);
+  showTask(ex.task);
+  // start from an empty shield and plug in only what this example needs (start code: nothing, the student wires it)
+  setWiring(ex.ports || {});
+  const used = Object.entries(ex.ports || {});
+  sysMsg(used.length ? 'Loaded "' + ex.name + '". Connected for this example: ' + used.map(([id, p]) => MOD[id].name + ' → ' + p).join(', ') + '.'
+    : 'Loaded "' + ex.name + '". Nothing is connected: choose a port for each module you use.');
+};
+// the exercise text that belongs to an EAVP start sketch (all its tasks) or solution (its own task)
+function showTask(task) {
+  $('taskCard').hidden = !task;
+  store.set('groveEmu.task', task ? JSON.stringify(task) : '');
+  if (!task) return;
+  $('taskTitle').textContent = task.title;
+  const ol = $('taskList'); ol.textContent = '';
+  for (const t of task.list) {
+    const li = document.createElement('li'), b = document.createElement('b');
+    b.textContent = t.letter; li.append(b, ' ' + t.text); ol.appendChild(li);
+  }
+}
+$('taskHide').onclick = () => showTask(null);
+function setWiring(ports) {
+  cfg = Object.fromEntries(MODULES.map(m => [m.id, '-'])); Object.assign(cfg, ports);
+  for (const m of MODULES) { const s = cards[m.id].querySelector('select'); s.value = cfg[m.id]; s._sync(); }
+  store.set('groveEmu.wiring', JSON.stringify(cfg)); updPorts(); updateSound();
+}
+$('openBtn').onclick = () => $('fileIn').click();
+$('fileIn').onchange = async e => { const f = e.target.files[0]; if (!f) return; setCode(await f.text()); $('fname').textContent = f.name; e.target.value = ''; };
+$('saveBtn').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([getCode()], { type: 'text/plain' }));
+  a.download = $('fname').textContent || 'sketch.ino'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+setInterval(() => { if (running) pollIrqs(); }, 5);
+// Dropdowns drawn by the page itself: native <select> popups do not open in some embedded browsers.
+let csOpen = null;
+function closeCs() { if (csOpen) { csOpen.remove(); csOpen = null; } }
+function customSelect(sel) {
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'cs-btn'; btn.innerHTML = '<span></span>'; btn.setAttribute('aria-haspopup', 'listbox');
+  sel.classList.add('cs-hidden'); sel.after(btn);
+  sel._sync = () => { const o = sel.options[sel.selectedIndex]; btn.firstChild.textContent = o ? o.textContent : ''; btn.setAttribute('aria-label', (sel.id === 'exSel' ? 'Examples: ' : 'Port: ') + btn.firstChild.textContent); };
+  sel._sync();
+  btn.onclick = e => { e.stopPropagation(); openCs(sel, btn); };
+  sel._open = anchor => openCs(sel, anchor); // lets another element (a tray chip) open this menu
+}
+function openCs(sel, btn) {
+  {
+    const was = csOpen && csOpen._owner === sel; closeCs(); if (was) return;
+    const pop = document.createElement('div'); pop.className = 'cs-pop'; pop._owner = sel;
+    for (const el of sel.children) {
+      const opts = el.tagName === 'OPTGROUP' ? [...el.children] : [el];
+      if (el.tagName === 'OPTGROUP') { const g = document.createElement('div'); g.className = 'g'; g.textContent = el.label; pop.appendChild(g); }
+      for (const o of opts) {
+        if (o.value === '' && sel.id === 'exSel') continue;
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = o.textContent;
+        if (o.selected) b.className = 'sel';
+        b.onclick = () => { sel.value = o.value; sel._sync(); closeCs(); sel.dispatchEvent(new Event('change')); if (btn.isConnected) btn.focus(); };
+        pop.appendChild(b);
+      }
+    }
+    document.body.appendChild(pop); csOpen = pop;
+    const r = btn.getBoundingClientRect();
+    pop.style.minWidth = r.width + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8)) + 'px';
+    pop.style.top = (r.bottom + pop.offsetHeight + 4 < innerHeight ? r.bottom + 4 : Math.max(8, r.top - pop.offsetHeight - 4)) + 'px';
+    (pop.querySelector('.sel') || pop.querySelector('button')).focus();
+  }
+}
+document.addEventListener('click', e => { if (csOpen && !csOpen.contains(e.target)) closeCs(); });
+document.addEventListener('keydown', e => {
+  if (!csOpen) return;
+  if (e.key === 'Escape') closeCs();
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const bs = [...csOpen.querySelectorAll('button')], i = bs.indexOf(document.activeElement);
+    bs[Math.max(0, Math.min(bs.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))].focus();
+  }
+});
+addEventListener('scroll', e => { if (csOpen && !csOpen.contains(e.target)) closeCs(); }, true);
+
+buildModules(); updPorts();
+document.querySelectorAll('select').forEach(customSelect);
+setCode(store.get('groveEmu.code') || EXAMPLES[0].code);
+try { const t = store.get('groveEmu.task'); if (t) showTask(JSON.parse(t)); } catch {}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
