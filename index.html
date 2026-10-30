@@ -113,8 +113,26 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .spk{font-size:34px;transition:transform .05s}
 .spk.on{transform:scale(1.2);filter:drop-shadow(0 0 6px orange)}
 .small{font-size:12px;color:var(--muted)}
-.help{padding:0 12px 12px;font-size:12.5px;color:var(--muted)}
-.help code{background:var(--bg);padding:0 3px;border-radius:3px}
+.help-dlg{max-width:560px;width:calc(100% - 32px);border:1px solid var(--line);border-radius:14px;padding:0 20px 16px;background:var(--panel);color:var(--ink);box-shadow:0 20px 50px #0004}
+.help-dlg::backdrop{background:#0006}
+.help-dlg[open]{animation:taskIn .2s ease-out}
+.help-hd{display:flex;align-items:center;justify-content:space-between;margin:0 -20px 4px;padding:12px 16px 10px 20px;border-bottom:1px solid var(--line)}
+.help-hd h2{font-size:17px;margin:0}
+.help-dlg h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:16px 0 4px}
+.help-dlg p,.help-dlg li{font-size:14px;line-height:1.5;margin:4px 0}
+.help-dlg ul{padding-left:20px;margin:0}
+.help-steps{padding-left:22px;margin:12px 0 0}
+.help-dlg code{background:var(--bg);padding:1px 4px;border-radius:4px;font-size:12.5px;white-space:nowrap}
+.help-note{margin-top:12px!important;font-weight:700}
+.libs{list-style:none;padding-left:0!important}
+.libs li{margin:5px 0}
+.libs a{color:var(--accent)}
+.libs a code{color:var(--accent);margin-right:4px}
+.help-btn{font-weight:700;width:34px;padding:5px 0;border-radius:50%}
+.home-btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;padding:6px 12px}
+.home-btn:hover{filter:brightness(1.1)}
+header h1{cursor:pointer}
+#fname{font:inherit;font-size:12px;text-transform:none;letter-spacing:0;padding:2px 6px;width:min(220px,45vw);text-align:right}
 .task{border-left:4px solid var(--accent);animation:taskIn .25s ease-out}
 @keyframes taskIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .task-title{padding:10px 12px 0;font-weight:700}
@@ -266,7 +284,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <text id="lcdText" x="342" y="399" fill="#10200f" font-size="15" font-family="monospace" font-weight="700"></text>
         </g>
       </svg>
-      <div class="steps" id="homeSteps"><span>1 · Arduino UNO R4</span><span>2 · Grove shield on top</span><span>3 · Plug in the sensors</span><span>4 · Upload your code and play!</span></div>
+      <div class="steps" id="homeSteps"><span>1 · Arduino UNO R4</span><span>2 · Grove shield on top</span><span>3 · Plug in sensors &amp; actuators</span><span>4 · Upload your code and play!</span></div>
     </div>
     <div class="limits" role="note">
       <b>⚠️ This is a learning simulator, not a real Arduino</b>
@@ -297,8 +315,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </div>
 <header>
-  <button id="homeBtn" title="Welcome page">🏠 Home</button>
-  <h1>🧰 Grove Kit Emulator <span class="small">Arduino UNO R4</span></h1>
+  <button id="homeBtn" class="home-btn" title="Back to the welcome page">🏠 Home</button>
+  <h1 id="homeTitle" title="Back to the welcome page">🧰 Grove Kit Emulator <span class="small">Arduino UNO R4</span></h1>
   <button id="runBtn" class="primary" title="Ctrl+Enter">▶ Upload &amp; run</button>
   <button id="stopBtn" class="stop">■ Stop</button>
   <select id="exSel" style="min-width:240px"><option value="">📚 Examples…</option></select>
@@ -307,6 +325,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <input type="file" id="fileIn" accept=".ino,.txt,.cpp,.c" hidden>
   <label class="small"><input type="checkbox" id="mute"> mute</label>
   <label class="small" title="Compile the sketch with a real C++ compiler (clang) and run the compiled program, like a real board. Untick to use the simpler, less exact simulator."><input type="checkbox" id="strict" checked> real C++ compiler</label>
+  <button id="helpBtn" class="help-btn" title="How does it work?" aria-label="How does it work?">?</button>
   <span id="status">stopped</span>
 </header>
 <main>
@@ -317,7 +336,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <ol class="task-list" id="taskList"></ol>
     </div>
     <div class="panel">
-      <h2>Sketch <span class="sp"></span><span class="small" id="fname">sketch.ino</span></h2>
+      <h2>Sketch <span class="sp"></span><input type="text" id="fname" value="my_sketch" spellcheck="false" aria-label="Sketch name" title="Name of your sketch: Save keeps it under this name"></h2>
       <div id="edwrap"><div id="gutter">1</div><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></div>
     </div>
     <div class="panel">
@@ -329,18 +348,42 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <canvas id="plot"></canvas>
       <div class="serin"><input type="text" id="serInput" placeholder="Send text to the board (Enter)…"><button id="sendBtn">Send</button></div>
     </div>
-    <div class="panel help">
-      <h2 style="margin:0 -12px 8px">How does it work?</h2>
-      Write your Arduino code just like in the Arduino IDE and click <b>Upload &amp; run</b>. For each module, choose which Grove shield port it is plugged into
-      (just like with a real cable). Controls: hold buttons down, drag sliders, drag the joystick.<br>
-      Supported libraries: <code>rgb_lcd.h</code>, <code>Servo.h</code>, <code>Adafruit_NeoPixel.h</code>, <code>AHT20.h</code>, <code>ICM20600.h</code> + <code>AK09918.h</code>, <code>DHT.h</code>, <code>LSM6DS3.h</code>, <code>LIS3DHTR.h</code>, <code>Wire.h</code>.<br>
-      Your sketch is compiled by a real C++ compiler (clang): code with errors is not uploaded, and all of C++ works (pointers, <code>struct</code>/<code>class</code>,
-      references, templates). The compiled program runs in your browser; the board, sensors and actuators are simulated, so timing and electrical behaviour
-      are not exact. Always test on the real kit. The compiler downloads once (about 23&nbsp;MB).<br>
-      Without internet, or in a browser that cannot run compiled programs (it needs a recent Chrome or Edge), a simpler simulator runs your code instead;
-      it does not support all of C++.
-    </div>
   </section>
+  <dialog id="helpDlg" class="help-dlg" aria-labelledby="helpTitle">
+    <div class="help-hd"><h2 id="helpTitle">❓ How does it work?</h2><button id="helpClose" aria-label="Close">✕</button></div>
+    <ol class="help-steps">
+      <li><b>Write your sketch</b> like in the Arduino IDE, or pick one from the menu.</li>
+      <li><b>Plug in the parts</b> you use: click a part in the tray, or drag it onto a port of the shield.</li>
+      <li><b>Upload &amp; run</b> (or Ctrl + Enter).</li>
+      <li><b>Play:</b> hold the buttons, drag the sliders and the joystick, watch the serial monitor and plotter.</li>
+    </ol>
+    <h3>Libraries you can use</h3>
+    <ul class="libs">
+      <li><a href="https://docs.arduino.cc/language-reference/en/functions/communication/wire/" target="_blank" rel="noopener"><code>Wire.h</code></a> I2C bus, for the LCD, AHT20 and IMU</li>
+      <li><a href="https://docs.arduino.cc/libraries/servo/" target="_blank" rel="noopener"><code>Servo.h</code></a> servo motor</li>
+      <li><a href="https://github.com/adafruit/Adafruit_NeoPixel" target="_blank" rel="noopener"><code>Adafruit_NeoPixel.h</code></a> NeoPixel LED strip
+        · <a href="https://learn.adafruit.com/adafruit-neopixel-uberguide/arduino-library-use" target="_blank" rel="noopener">guide</a></li>
+      <li><a href="https://github.com/Seeed-Studio/Grove_LCD_RGB_Backlight" target="_blank" rel="noopener"><code>rgb_lcd.h</code></a> RGB LCD screen
+        · <a href="https://wiki.seeedstudio.com/Grove-LCD_RGB_Backlight/" target="_blank" rel="noopener">module wiki</a></li>
+      <li><a href="https://github.com/Seeed-Studio/Seeed_Arduino_AHT20" target="_blank" rel="noopener"><code>AHT20.h</code></a> temperature &amp; humidity sensor
+        · <a href="https://wiki.seeedstudio.com/Grove-AHT20-I2C-Industrial-Grade-Temperature&amp;Humidity-Sensor/" target="_blank" rel="noopener">module wiki</a></li>
+      <li><a href="https://github.com/AntwerpDesignFactory/Seeed_ICM20600_AK09918" target="_blank" rel="noopener"><code>ICM20600.h</code> + <code>AK09918.h</code></a> 9DOF IMU (accelerometer, gyroscope, compass)
+        · <a href="https://wiki.seeedstudio.com/Grove-IMU_9DOF-lcm20600+AK09918/" target="_blank" rel="noopener">module wiki</a></li>
+      <li><a href="https://docs.arduino.cc/language-reference/" target="_blank" rel="noopener"><code>math.h</code></a> maths: sin, cos, sqrt, pow, …</li>
+      <li class="small">Also: <a href="https://github.com/Seeed-Studio/Grove_Temperature_And_Humidity_Sensor" target="_blank" rel="noopener"><code>DHT.h</code></a>
+        <a href="https://github.com/Seeed-Studio/Seeed_Arduino_LSM6DS3" target="_blank" rel="noopener"><code>LSM6DS3.h</code></a>
+        <a href="https://github.com/Seeed-Studio/Seeed_Arduino_LIS3DHTR" target="_blank" rel="noopener"><code>LIS3DHTR.h</code></a> for other Grove sensors</li>
+    </ul>
+    <h3>Your sketches</h3>
+    <p>Type a name next to <i>Sketch</i> and click <b>💾 Save</b>: the sketch is kept in this browser under <i>Your sketches</i> in the menu, and a copy is downloaded.</p>
+    <h3>What happens behind the scenes</h3>
+    <ul>
+      <li>A real C++ compiler (clang) compiles your sketch: code with errors is not uploaded, and all of C++ works.</li>
+      <li>The program runs in your browser; the board, sensors and actuators are simulated, so timing and electrical behaviour are not exact.</li>
+      <li>The compiler downloads once (about 23&nbsp;MB). Needs Chrome or Edge; otherwise, or offline, a simpler simulator runs your code.</li>
+    </ul>
+    <p class="help-note">Always test your project on the real kit.</p>
+  </dialog>
   <section style="display:flex;flex-direction:column;gap:14px;min-width:0">
     <div class="panel">
       <div class="board">
@@ -3074,16 +3117,30 @@ void loop() {
 
 }
 `;
-const ALL_EX = [{ group: 'Start', name: '📄 New empty sketch', code: NEW_SKETCH, ports: {} },
-  ...EXAMPLES.map(ex => ({ ...ex, group: 'Grove kit examples' })), ...EAVP];
-const groups = {};
-ALL_EX.forEach((ex, i) => {
-  if (!groups[ex.group]) { groups[ex.group] = document.createElement('optgroup'); groups[ex.group].label = ex.group; $('exSel').appendChild(groups[ex.group]); }
-  const o = document.createElement('option'); o.value = i; o.textContent = ex.name; groups[ex.group].appendChild(o);
-});
+// Sketches the student saved in this browser: { name: { code, ports, time } }
+const loadMine = () => { try { return JSON.parse(store.get('groveEmu.mine') || '{}'); } catch { return {}; } };
+const safeName = s => String(s).replace(/\.ino$/i, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+function setName(n) { $('fname').value = safeName(n) || 'my_sketch'; store.set('groveEmu.name', $('fname').value); }
+// The menu: your own sketches first, then the Grove kit examples, then the exercises
+let ALL_EX = [];
+function buildMenu() {
+  const mine = Object.entries(loadMine()).sort((a, b) => b[1].time - a[1].time)
+    .map(([name, s]) => ({ group: 'Your sketches', name: '💾 ' + name, saved: name, code: s.code, ports: s.ports || {} }));
+  ALL_EX = [{ group: 'Your sketches', name: '📄 New empty sketch', code: NEW_SKETCH, ports: {} }, ...mine,
+    ...EXAMPLES.map(ex => ({ ...ex, group: 'Grove kit examples' })), ...EAVP];
+  const sel = $('exSel');
+  while (sel.children.length > 1) sel.lastChild.remove(); // keep the "Examples…" placeholder
+  const groups = {};
+  ALL_EX.forEach((ex, i) => {
+    if (!groups[ex.group]) { groups[ex.group] = document.createElement('optgroup'); groups[ex.group].label = ex.group; sel.appendChild(groups[ex.group]); }
+    const o = document.createElement('option'); o.value = i; o.textContent = ex.name; groups[ex.group].appendChild(o);
+  });
+  sel.value = ''; if (sel._sync) sel._sync();
+}
+buildMenu();
 $('exSel').onchange = e => {
   const ex = ALL_EX[e.target.value]; if (!ex) return;
-  stop(); setCode(ex.code); $('fname').textContent = ex.name.replace(/[^\w-]+/g, '_').replace(/^_|_$/g, '') + '.ino'; store.set('groveEmu.code', ex.code);
+  stop(); setCode(ex.code); setName(ex.saved || (ex.code === NEW_SKETCH ? 'my_sketch' : ex.name)); store.set('groveEmu.code', ex.code);
   showTask(ex.task);
   // start from an empty shield and plug in only what this example needs (start code: nothing, the student wires it)
   setWiring(ex.ports || {});
@@ -3110,10 +3167,17 @@ function setWiring(ports) {
   store.set('groveEmu.wiring', JSON.stringify(cfg)); updPorts(); updateSound();
 }
 $('openBtn').onclick = () => $('fileIn').click();
-$('fileIn').onchange = async e => { const f = e.target.files[0]; if (!f) return; setCode(await f.text()); $('fname').textContent = f.name; e.target.value = ''; };
+$('fileIn').onchange = async e => { const f = e.target.files[0]; if (!f) return; setCode(await f.text()); setName(f.name); e.target.value = ''; };
+$('fname').addEventListener('change', () => setName($('fname').value));
+// Save keeps the sketch (and what is plugged in) in this browser under its name, and downloads a copy
 $('saveBtn').onclick = () => {
+  const name = safeName($('fname').value) || 'my_sketch'; setName(name);
+  const mine = loadMine();
+  mine[name] = { code: getCode(), ports: Object.fromEntries(Object.entries(cfg).filter(([, p]) => p !== '-')), time: Date.now() };
+  store.set('groveEmu.mine', JSON.stringify(mine)); buildMenu();
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([getCode()], { type: 'text/plain' }));
-  a.download = $('fname').textContent || 'sketch.ino'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  a.download = name + '.ino'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  sysMsg(`Saved "${name}": you find it under "Your sketches" in the menu, and ${name}.ino was downloaded.`);
 };
 
 setInterval(() => { if (running) pollIrqs(); }, 5);
@@ -3201,6 +3265,13 @@ function showHome(on) {
   store.set('groveEmu.seenHome', '1');
 }
 $('homeBtn').onclick = () => showHome(true);
+$('homeTitle').onclick = () => showHome(true);
+$('helpBtn').onclick = () => $('helpDlg').showModal();
+$('helpClose').onclick = () => $('helpDlg').close();
+$('helpDlg').addEventListener('click', e => { // a click on the dimmed backdrop, outside the window, closes it
+  const r = $('helpDlg').getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) $('helpDlg').close();
+});
 $('homeStart').onclick = () => showHome(false);
 $('homeEx1').onclick = () => {
   showHome(false);
@@ -3212,6 +3283,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && !$('home').hidden) 
 buildModules(); updPorts();
 document.querySelectorAll('select').forEach(customSelect);
 setCode(store.get('groveEmu.code') || NEW_SKETCH);
+$('fname').value = store.get('groveEmu.name') || 'my_sketch';
 try { const t = store.get('groveEmu.task'); if (t) showTask(JSON.parse(t)); } catch {}
 if (store.get('groveEmu.seenHome') !== '1') showHome(true);
 requestAnimationFrame(frame);
