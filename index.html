@@ -7,18 +7,18 @@
 <style>
 :root{
   --bg:#e9edf2; --panel:#ffffff; --ink:#1b2430; --muted:#5b6676; --line:#d3dae3;
-  --accent:#00878f; --accent-ink:#fff; --pcb:#1d5aa6; --pcb-dark:#123f78; --danger:#c62828;
+  --accent:#00878f; --accent-ink:#fff; --pcb:#1d5aa6; --pcb-dark:#123f78; --danger:#c62828; --warn:#a85d00;
   --ed-bg:#1e2329; --ed-ink:#e6e6e6; --ed-gut:#7b8594; --ser-bg:#0f1418; --ser-ink:#b8f5c0;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#12161b; --panel:#1b2128; --ink:#e4e8ee; --muted:#9aa5b3; --line:#2c3540;
-    --accent:#19a7b0; --pcb:#2a6bc0; --pcb-dark:#1a4a88;
+    --accent:#19a7b0; --pcb:#2a6bc0; --pcb-dark:#1a4a88; --warn:#f0b429;
   }
 }
 :root[data-theme="dark"]{
   --bg:#12161b; --panel:#1b2128; --ink:#e4e8ee; --muted:#9aa5b3; --line:#2c3540;
-  --accent:#19a7b0; --pcb:#2a6bc0; --pcb-dark:#1a4a88;
+  --accent:#19a7b0; --pcb:#2a6bc0; --pcb-dark:#1a4a88; --warn:#f0b429;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif}
@@ -30,6 +30,7 @@ button.primary{background:var(--accent);color:var(--accent-ink);border-color:var
 button.stop{background:var(--danger);color:#fff;border-color:var(--danger)}
 #status{margin-left:auto;font-weight:600;color:var(--muted)}
 #status.run{color:var(--accent)}
+#status.stale{color:var(--warn)}
 main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;padding:14px 16px}
 @media (max-width:1000px){main{grid-template-columns:1fr}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -1157,6 +1158,7 @@ function normPin(p){ p = +p; return (p >= 0 && p <= 5 && arguments[1]) ? p + 14 
 // ===== Runtime =====
 const STOP = Symbol('stop');
 let running = false, runId = 0, t0 = performance.now(), lastYield = 0, pending = new Set();
+let runSrc = ''; // the code of the program that is running (the last Upload & run)
 const mc = new MessageChannel(), mcq = [];
 mc.port1.onmessage = () => { const f = mcq.shift(); f && f(); };
 const macro = () => new Promise(r => { mcq.push(r); mc.port2.postMessage(0); });
@@ -2793,7 +2795,7 @@ function explainLink(out) {
 
 async function run() {
   stop(); ensureAudio(); resetBoard();
-  const src = getCode();
+  const src = getCode(); runSrc = src;
   store.set('groveEmu.code', src);
   if ($('strict').checked) {
     const me = ++runId;
@@ -2850,12 +2852,17 @@ function stop() {
   for (const o of pending) { clearTimeout(o.t); o.rej(STOP); }
   pending.clear(); updateSound(); setStatus();
 }
-function setStatus() { const s = $('status'); s.textContent = running ? '● program running' : 'stopped'; s.className = running ? 'run' : ''; }
+// edits only take effect after the next Upload & run, so say so while the editor differs from runSrc
+function setStatus() {
+  const s = $('status'), stale = running && getCode() !== runSrc;
+  s.textContent = !running ? 'stopped' : stale ? '● running the previous upload: Upload & run to apply your changes' : '● program running';
+  s.className = stale ? 'stale' : running ? 'run' : '';
+}
 
 // ===== Editor =====
 const ed = $('code'), gut = $('gutter');
 function getCode() { return ed.value; }
-function setCode(s) { ed.value = s; updGutter(); }
+function setCode(s) { ed.value = s; updGutter(); setStatus(); }
 function updGutter() { const n = ed.value.split('\n').length; let t = ''; for (let i = 1; i <= n; i++) t += i + '\n'; gut.textContent = t; gut.scrollTop = ed.scrollTop; }
 function gotoLine(n) {
   const lines = ed.value.split('\n'); let a = 0;
@@ -2863,7 +2870,7 @@ function gotoLine(n) {
   ed.focus(); ed.setSelectionRange(a, a + (lines[n - 1] || '').length);
   ed.scrollTop = Math.max(0, (n - 5) * 19.5);
 }
-ed.addEventListener('input', () => { updGutter(); store.set('groveEmu.code', ed.value); });
+ed.addEventListener('input', () => { updGutter(); store.set('groveEmu.code', ed.value); setStatus(); });
 ed.addEventListener('scroll', () => { gut.scrollTop = ed.scrollTop; });
 ed.addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); return; }
