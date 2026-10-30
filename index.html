@@ -124,6 +124,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .help-steps{padding-left:22px;margin:12px 0 0}
 .help-dlg code{background:var(--bg);padding:1px 4px;border-radius:4px;font-size:12.5px;white-space:nowrap}
 .help-note{margin-top:12px!important;font-weight:700}
+.help-dlg ul.small li{font-size:12.5px;color:var(--muted)}
+.help-dlg a{color:var(--accent)}
 .libs{list-style:none;padding-left:0!important}
 .libs li{margin:5px 0}
 .libs a{color:var(--accent)}
@@ -213,7 +215,7 @@ header h1{cursor:pointer}
 </style>
 </head>
 <body>
-<div id="home" hidden>
+<div id="home">
   <div class="home-in">
     <div class="uni"><img src="data:image/png;base64,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" alt="University of Antwerp" width="44" height="44"><span><b>University of Antwerp</b><br>SMART Lab · Product Development</span></div>
     <div style="font-size:15px;color:var(--accent);font-weight:700">Welcome to the</div>
@@ -334,6 +336,11 @@ header h1{cursor:pointer}
     <div class="kit" id="kitList"></div>
   </div>
 </div>
+<script>
+  // The home page is visible from the very first paint; returning visitors skip it straight away,
+  // before the rest of the page is built, so nothing flashes.
+  try { if (localStorage.getItem('groveEmu.seenHome') === '1') document.getElementById('home').hidden = true; } catch (e) {}
+</script>
 <header>
   <button id="homeBtn" class="home-btn" title="Back to the welcome page">🏠 Home</button>
   <h1 id="homeTitle" title="Back to the welcome page">🧰 Grove Kit Emulator <span class="small">Arduino UNO R4</span></h1>
@@ -403,6 +410,13 @@ header h1{cursor:pointer}
       <li>The compiler downloads once (about 23&nbsp;MB). Needs Chrome or Edge; otherwise, or offline, a simpler simulator runs your code.</li>
     </ul>
     <p class="help-note">Always test your project on the real kit.</p>
+    <h3>Credits &amp; trademarks</h3>
+    <ul class="small">
+      <li>The C++ compiler is <a href="https://llvm.org/" target="_blank" rel="noopener">LLVM/Clang</a> (Apache-2.0 with LLVM exception), built for the browser by
+        <a href="https://github.com/YoWASP/clang" target="_blank" rel="noopener">YoWASP</a> and loaded from jsDelivr; it is not part of this project.</li>
+      <li>The Arduino core and the kit libraries in the emulator are our own implementations that follow the official interfaces, so the same sketches compile; no library code is copied.</li>
+      <li>Arduino, Grove, Seeed Studio and Adafruit are trademarks of their owners. This project is a teaching aid of the University of Antwerp and is not affiliated with or endorsed by them.</li>
+    </ul>
   </dialog>
   <section style="display:flex;flex-direction:column;gap:14px;min-width:0">
     <div class="panel">
@@ -2345,7 +2359,7 @@ int Servo::read() { return emu_servo(5, _id, 0, 0, 0); }
 int Servo::readMicroseconds() { return emu_servo(6, _id, 0, 0, 0); }
 bool Servo::attached() { return emu_servo(7, _id, 0, 0, 0); }
 
-/* ---------- Adafruit_NeoPixel (colour maths copied from the Adafruit library) ---------- */
+/* ---------- Adafruit_NeoPixel: same functions as Adafruit's library, our own implementation ---------- */
 Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t pin, neoPixelType) { _id = emu_neo(0, 0, n, pin, 0); }
 Adafruit_NeoPixel::Adafruit_NeoPixel(void) { _id = emu_neo(0, 0, 0, -1, 0); }
 void Adafruit_NeoPixel::begin(void) {}
@@ -2367,15 +2381,22 @@ uint32_t Adafruit_NeoPixel::getPixelColor(uint16_t n) const { return (uint32_t)e
 uint8_t *Adafruit_NeoPixel::getPixels(void) const { return 0; }
 uint32_t Adafruit_NeoPixel::Color(uint8_t r, uint8_t g, uint8_t b) { return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b; }
 uint32_t Adafruit_NeoPixel::Color(uint8_t r, uint8_t g, uint8_t b, uint8_t w) { return ((uint32_t)w << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b; }
+// The textbook HSV to RGB conversion: the colour circle (hue 0..65535) is split into six sectors;
+// p, q and t are the falling, rising and lowest channel inside a sector.
 uint32_t Adafruit_NeoPixel::ColorHSV(uint16_t hue, uint8_t sat, uint8_t val) {
-  uint8_t r, g, b;
-  hue = (hue * 1530L + 32768) / 65536;
-  if (hue < 510) { b = 0; if (hue < 255) { r = 255; g = hue; } else { r = 510 - hue; g = 255; } }
-  else if (hue < 1020) { r = 0; if (hue < 765) { g = 255; b = hue - 510; } else { g = 1020 - hue; b = 255; } }
-  else if (hue < 1530) { g = 0; if (hue < 1275) { r = hue - 1020; b = 255; } else { r = 255; b = 1530 - hue; } }
-  else { r = 255; g = b = 0; }
-  uint32_t v1 = 1 + val; uint16_t s1 = 1 + sat; uint8_t s2 = 255 - sat;
-  return ((((((r * s1) >> 8) + s2) * v1) & 0xff00) << 8) | (((((g * s1) >> 8) + s2) * v1) & 0xff00) | (((((b * s1) >> 8) + s2) * v1) >> 8);
+  uint32_t h6 = (uint32_t)hue * 6, f = h6 & 0xFFFF;
+  uint32_t v = val, s = sat;
+  uint8_t p = (v * (255 - s) + 127) / 255;
+  uint8_t q = (v * (255 - (s * f + 32768) / 65536) + 127) / 255;
+  uint8_t t = (v * (255 - (s * (65536 - f) + 32768) / 65536) + 127) / 255;
+  switch (h6 >> 16) {
+    case 0: return Color(v, t, p);
+    case 1: return Color(q, v, p);
+    case 2: return Color(p, v, t);
+    case 3: return Color(p, q, v);
+    case 4: return Color(t, p, v);
+    default: return Color(v, p, q);
+  }
 }
 uint8_t Adafruit_NeoPixel::gamma8(uint8_t x) { return (uint8_t)(pow(x / 255.0, 2.6) * 255.0 + 0.5); }
 uint32_t Adafruit_NeoPixel::gamma32(uint32_t x) {
@@ -2536,7 +2557,7 @@ function runClangJob(args, files, want, label) {
         ccWorker.onerror = e => { for (const [, w] of ccWaiting) w.done({ fail: e.message || 'worker failed' }); ccWaiting.clear(); ccWorker = null; };
       }
       const id = ++ccReq;
-      ccWaiting.set(id, { done: resolve, progress: p => setCheckStatus(`downloading C++ compiler (first time only) ${Math.round(p * 100)}%`) });
+      ccWaiting.set(id, { done: resolve, progress: p => { if (label) setCheckStatus(`downloading C++ compiler (first time only) ${Math.round(p * 100)}%`); } });
       if (label) setCheckStatus(label);
       ccWorker.postMessage({ id, args, files, want });
     } catch (e) { resolve({ fail: e.message }); }
@@ -3321,6 +3342,12 @@ setCode(store.get('groveEmu.code') || NEW_SKETCH);
 $('fname').value = store.get('groveEmu.name') || 'my_sketch';
 try { const t = store.get('groveEmu.task'); if (t) showTask(JSON.parse(t)); } catch {}
 if (store.get('groveEmu.seenHome') !== '1') showHome(true);
+// Get the compiler ready in the background right away (it takes ~15 s to prepare after each page load),
+// so it is usually ready by the time the student clicks Upload. Only where it is already downloaded once,
+// so a first visit on a slow connection is not made slower.
+if ($('strict').checked && hasJSPI && store.get(CORE_KEY)) setTimeout(() => {
+  runClangJob(['clang++', '--version'], {}, null, null).then(r => { if (!r.fail) ccReady = true; });
+}, 1500);
 requestAnimationFrame(frame);
 </script>
 </body>

@@ -29,3 +29,13 @@ libraries written in C++. The compiled program runs in the page and talks to a m
 that cannot run compiled programs, a simpler simulator runs the code instead (it does not support all of C++).
 
 It is a learning tool: timing and electrical details are not exact, so always test on the real kit too.
+
+## Credits and trademarks
+
+- The C++ compiler is [LLVM/Clang](https://llvm.org/) (Apache-2.0 with LLVM exception), built for the browser by
+  [YoWASP](https://github.com/YoWASP/clang) and loaded from jsDelivr when the page runs; it is not part of this repository.
+- The Arduino core and the kit libraries inside the emulator are our own implementations that follow the official
+  interfaces (Arduino, Seeed Studio, Adafruit), so the same sketches compile. No library code is copied.
+- The exercises come from the course *Elektronische aspecten van producten* at the University of Antwerp.
+- Arduino, Grove, Seeed Studio and Adafruit are trademarks of their owners. This project is a teaching aid of the
+  University of Antwerp and is not affiliated with or endorsed by them.
