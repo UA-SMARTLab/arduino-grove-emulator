@@ -39,3 +39,8 @@ It is a learning tool: timing and electrical details are not exact, so always te
 - The exercises come from the course *Elektronische aspecten van producten* at the University of Antwerp.
 - Arduino, Grove, Seeed Studio and Adafruit are trademarks of their owners. This project is a teaching aid of the
   University of Antwerp and is not affiliated with or endorsed by them.
+
+## Licence
+
+The emulator code is released under the [MIT licence](LICENSE). The course exercises and the University of Antwerp
+logo are not covered by it.
