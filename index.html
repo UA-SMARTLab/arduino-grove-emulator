@@ -143,6 +143,17 @@ header h1{cursor:pointer}
 #home{position:fixed;inset:0;z-index:40;overflow:auto;background:var(--bg)}
 #home[hidden]{display:none}
 .home-in{max-width:980px;margin:0 auto;padding:28px 16px 40px;text-align:center}
+.kit-h{margin:34px 0 4px;font-size:22px}
+.kit-lead{color:var(--muted);max-width:680px;margin:0 auto 12px;font-size:14.5px}
+.kit-lead a{color:var(--accent);font-weight:600}
+.kit{text-align:left}
+.kit h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 6px}
+.kit-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.kit a.part-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:14px;transition:transform .12s,border-color .12s}
+.kit a.part-link:hover{transform:translateY(-2px);border-color:var(--accent)}
+.kit a.part-link .ic{font-size:22px}
+.kit a.part-link small{display:block;color:var(--muted);font-size:11.5px}
+.card .info{text-decoration:none;font-size:13px;margin-left:4px;color:var(--accent)}
 .uni{display:inline-flex;align-items:center;gap:10px;margin:0 0 14px;padding:6px 14px 6px 6px;border-radius:12px;background:var(--panel);border:1px solid var(--line);text-align:left;font-size:13px;line-height:1.3;color:var(--muted)}
 .uni img{border-radius:9px;display:block}
 .uni b{color:var(--ink);font-size:14px}
@@ -316,6 +327,11 @@ header h1{cursor:pointer}
       <div class="feat"><span class="e">🚀</span><b>How to start</b>
         <p>Pick an exercise or example from the menu, plug in the parts it needs, and click <i>Upload &amp; run</i>. Use Chrome or Edge.</p></div>
     </div>
+    <h2 class="kit-h">🧰 What's in the kit</h2>
+    <p class="kit-lead"><a href="https://wiki.seeedstudio.com/Grove_System/" target="_blank" rel="noopener">Grove</a> is a plug-and-play system by Seeed Studio:
+      every sensor and actuator is a small module that connects to the Arduino with the same 4-wire cable, without soldering or a breadboard.
+      Click a part to see its official page.</p>
+    <div class="kit" id="kitList"></div>
   </div>
 </div>
 <header>
@@ -1076,6 +1092,11 @@ const MODULES = [
   {id:'imu',     name:'IMU 9DOF (ICM20600 + AK09918)',   sub:'I2C - input',  ports:['I2C'], def:'-'},
 ];
 const MOD = Object.fromEntries(MODULES.map(m => [m.id, m]));
+// official page of each Grove module (Seeed Studio wiki)
+const WIKI = { button: 'https://wiki.seeedstudio.com/Grove-Button/', touch: 'https://wiki.seeedstudio.com/Grove-Touch_Sensor/', buzzer: 'https://wiki.seeedstudio.com/Grove-Buzzer/', servo: 'https://wiki.seeedstudio.com/Grove-Servo/',
+  neopixel: 'https://wiki.seeedstudio.com/Grove-RGB_LED_Stick-10-WS2813_Mini/', rotary: 'https://wiki.seeedstudio.com/Grove-Rotary_Angle_Sensor/', slide: 'https://wiki.seeedstudio.com/Grove-Slide_Potentiometer/',
+  light: 'https://wiki.seeedstudio.com/Grove-Light_Sensor/', temp: 'https://wiki.seeedstudio.com/Grove-Temperature_Sensor_V1.2/', sound: 'https://wiki.seeedstudio.com/Grove-Sound_Sensor/', joystick: 'https://wiki.seeedstudio.com/Grove-Thumb_Joystick/',
+  lcd: 'https://wiki.seeedstudio.com/Grove-LCD_RGB_Backlight/', dht: 'https://wiki.seeedstudio.com/Grove-AHT20-I2C-Industrial-Grade-Temperature&Humidity-Sensor/', imu: 'https://wiki.seeedstudio.com/Grove-IMU_9DOF-lcm20600+AK09918/' };
 const ICON = { button: '🔘', touch: '👆', buzzer: '🔊', servo: '⚙️', neopixel: '🌈', rotary: '🎛️', slide: '🎚️', light: '💡',
   temp: '🌡️', sound: '🎤', joystick: '🕹️', lcd: '📟', dht: '💧', imu: '🧭' };
 const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch {} } };
@@ -2866,7 +2887,7 @@ function buildModules() {
   const box = $('mods');
   for (const m of MODULES) {
     const c = document.createElement('div'); c.className = 'card';
-    c.innerHTML = `<div class="hd"><div><div class="nm"><span class="ic">${ICON[m.id]}</span>${m.name}</div><div class="sub">${m.sub}</div></div>`
+    c.innerHTML = `<div class="hd"><div><div class="nm"><span class="ic">${ICON[m.id]}</span>${m.name}<a class="info" href="${WIKI[m.id]}" target="_blank" rel="noopener" title="Official page of this Grove module" aria-label="Official page of the ${m.name}">ⓘ</a></div><div class="sub">${m.sub}</div></div>`
       + `<div class="row" style="gap:4px">${portSelect(m)}<button class="unplug" title="Unplug and put back in the tray" aria-label="Unplug ${m.name}">⏏</button></div></div>${BODY[m.id]}<div class="warn"></div>`;
     c.hidden = true;
     box.appendChild(c); cards[m.id] = c;
@@ -3269,6 +3290,16 @@ function showHome(on) {
   store.set('groveEmu.seenHome', '1');
 }
 $('homeBtn').onclick = () => showHome(true);
+// "What's in the kit": the board, then the modules as sensors and actuators, each linked to its official page
+(function buildKitList() {
+  const link = (href, ic, name, sub) => `<a class="part-link" href="${href}" target="_blank" rel="noopener"><span class="ic">${ic}</span><span>${name}<small>${sub}</small></span></a>`;
+  const IN = ['button', 'touch', 'rotary', 'slide', 'light', 'temp', 'sound', 'joystick', 'dht', 'imu'], OUT = ['neopixel', 'servo', 'buzzer', 'lcd'];
+  const row = ids => `<div class="kit-row">${ids.map(id => link(WIKI[id], ICON[id], MOD[id].name, MOD[id].sub)).join('')}</div>`;
+  $('kitList').innerHTML =
+    `<h3>The board</h3><div class="kit-row">${link('https://docs.arduino.cc/hardware/uno-r4-minima/', '🟦', 'Arduino UNO R4 Minima', 'the microcontroller board')}`
+    + `${link('https://wiki.seeedstudio.com/Base_Shield_V2/', '⬛', 'Grove Base Shield', 'plugs on top, gives the Grove ports')}</div>`
+    + `<h3>Sensors (inputs)</h3>${row(IN)}<h3>Actuators (outputs)</h3>${row(OUT)}`;
+})();
 $('homeTitle').onclick = () => showHome(true);
 $('helpBtn').onclick = () => $('helpDlg').showModal();
 $('helpClose').onclick = () => $('helpDlg').close();
