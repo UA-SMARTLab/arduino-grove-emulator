@@ -657,12 +657,12 @@ function addYields(s) {
 //#EAVP-START
 const EAVP = [
  {
-  "group": "EAVP exercises (start code)",
-  "name": "1 Basis sensor en serial prints",
+  "group": "Exercises (start code)",
+  "name": "Exercise 1: Sensors & serial prints",
   "code": "/* PROGRAMMING IN ARDUINO, Reading sensors and communicating with the PC */\n/*\n * This code reads an analog sensor on pin A3 and sends this value to the computer.\n */\n\n#define sensor A3  // This tells Arduino that whenever we type sensor, we mean the sensor connected to pin A3. If we ever change pins, it only needs to be done in 1 place instead of 50x all over the code \\\n                  // Why there is no ; needed here is the first exception to the rule, one of the oddities that every language has.\n\nint sensorvalue = 0;  // This creates a variable in which we can temporarily store the value of the sensor later on. You can always choose the name yourself, but use a name that indicates what it is used for.\n\nvoid setup() {\n  // Put your startup code here (these things are processed by Arduino when it starts up). These are things like starting communication and peripheral components, indicator lights and so on.\n\n  Serial.begin(9600);  // This line starts the communication with the computer and thus allows text to be sent to the computer (9600 indicates the communication speed, other values are possible but use 9600 for now).\n  delay(2500);         //The connection between laptop and Arduino does not start immediately, this delay gives the connection time to start up. Only after this can you print things.\n\n}\n\nvoid loop() {\n  // Put your code here that will keep running forever as long as the Arduino has power.\n\n  sensorvalue = analogRead(sensor);  // This code reads the analog value of the sensor and stores it in the variable sensorvalue (this is a value between 0 and 1023)\n\n  Serial.print(\"Sensor A3 measures: \");  // This line is optional to make the output neater and more readable, especially when you later read out multiple sensors together\n\n  Serial.println(sensorvalue);  // This line prints the value of the variable and then prints a line break (starts a new line)\n\n  delay(250);  // This pauses the Arduino for 250ms. Purely so that the data rate doesn't overwhelm the computer and the output stays readable.\n}\n\n/************************************* EXERCISES: **************************************************************\n a  First read through this code line by line, and also read all comments (everything after a //) so you can follow its structure.\n b  Try to extend this code so that it prints \"hello world\" to the computer when you start the Arduino.\n c  Test a few analog sensors on pin A3 and try to find the minimum and maximum values of each sensor (note that these are not always 0 and 1023 as in theory). The potentiometers work best, the temperature sensor and the sound sensor are not very sensitive.\n d  Try to convert the sensor's measurement, to map it so that the output to the computer ranges from 0 to 100 (Hint: This can be done using math in the code or with the map function: https://www.arduino.cc/reference/en/language/functions/math/map/ )\n e  Instead of reading only one sensor, try reading 2 sensors and sending both. (Hint: Also try sending Serial.print(\"\\t\"); between your other measurements...)\n f  Combine the values of 2 sensors and send their average value back to the computer (Hint: (A+B)/2)\n */\n",
   "ports": {},
   "task": {
-   "title": "Exercise 1: Basis sensor en serial prints",
+   "title": "Exercise 1: Sensors & serial prints",
    "list": [
     {
      "letter": "a",
@@ -692,12 +692,12 @@ const EAVP = [
   }
  },
  {
-  "group": "EAVP exercises (start code)",
-  "name": "2 Basiscode voor de Neopixel",
+  "group": "Exercises (start code)",
+  "name": "Exercise 2: NeoPixel LED strip",
   "code": "/*\n    First code to control the Neopixels (RGB LED Stick). This code starts the connection with the LED and simply displays a green color.\n\n    Before you get started with this code you need to do 1 extra thing in the Arduino IDE.\n    We are going to use a Library that makes programming the Neopixel LED much easier.\n\n    To be able to use it, go to Sketch -> Include Library -> Manage Libraries\n\n    And search at the top for \"Neopixel\". Then choose the library named exactly \"Adafruit Neopixel\" by Adafruit (by clicking install).\n    From now on you can compile and use the code!\n\n    About the Neopixel: This is not an ordinary LED like the one seen in class. This is an LED with a processor inside!, and internally also equipped with all the necessary resistors and connections.\n    We don't light it up by simply applying voltage with digitalWrite, it needs data to work. That's why we use the library, which takes care of all the communication for us.\n*/\n\n#include <Adafruit_NeoPixel.h>  //Load the neopixel library\n\n#define ledpin D6       //We define that the LED will be connected to pin 6 of the Arduino. You can write this either as 6 or as D6\n#define aantal_leds 10  //And specify that 10 LEDs need to be controlled.\nAdafruit_NeoPixel pixels = Adafruit_NeoPixel(aantal_leds, ledpin, NEO_GRB + NEO_KHZ800);\n// And create a neopixel called pixels, in the function you pass:(The number of LEDs, pin, LED type)\n\nint delaytime = 100;  // I'm also writing the delay at the top here already, This is cleaner practice so that changes in the code itself are rarely needed.\nlong kleur = 0;       // Integer in which the desired color is temporarily stored\n// long (long number) instead of int (integer) since the 3 colors together would be too large for an int, a long goes up to 2 billion instead of 32767.\n\nvoid setup() {\n  Serial.begin(9600);        //Start connection with the PC\n  pixels.begin();            // Start connection with the LED (This has a fixed speed so we don't need to specify it)\n  pixels.clear();            // Turn all LEDs off\n  pixels.setBrightness(64);  // To spare your eyes a bit we dim the maximum brightness of the LEDs\n  pixels.show();             // And actually send these settings to the LEDs.\n}\n\nvoid loop() {\n  kleur = pixels.Color(0, 255, 0);  // Create a color and store it in the variable kleur\n  pixels.fill(kleur);               // Send this color to all the LEDs\n  pixels.show();                    // Send a signal to the LEDs that all LEDs may show the color\n  delay(delaytime);\n}\n\n/* all neopixel codes: https://learn.adafruit.com/adafruit-neopixel-uberguide/arduino-library-use\n    *pixels.begin();                      //Starts communication with the LED(s), *and therefore only belongs in the setup\n    *pixels.setBrightness(dimwaarde);     //*May only be in the setup! value between 0 and 255. This number determines the maximum value of the LED but only belongs in the setup\n    pixels.Color(R,G,B);                  //Converts the 3 color values for R, G and B into 1 number that Arduino can send to the LED\n    pixels.setPixelColor(led_nr, kleur);  //Tells one/the LED which color you want. This goes into the LED's memory but is not shown yet\n    pixels.setPixelColor(led_nr, R, G, B);//Alternative version of the function with which you can pass the color directly\n    pixels.fill(kleur);                   //Sets all LEDs in your chain to that color at once\n    pixels.fill(kleur, vanaf_nr, aantal); //Sets part of the LEDs of the chain at the same time\n    pixels.gamma32(kleur);                //This function corrects your color to a possibly better representation on LEDs.\n    pixels.show();                        //Sends a signal to all LEDs to show the color they have in their memory\n    pixels.clear();                       //Resets the color of the LED to 0,0,0 and thus off. (still needs a .show() afterwards)\n*/\n\n/************************************* EXERCISES: **************************************************************\n a  Above is a list of possible functions you can use with the neopixel LEDs; below are the exercises\n b  Make the LED shine a red light instead of the green\n c  Make the LED alternate between 2 colors in a loop (your own choice of colors)(Copy paste, don't forget the show() and delay().)\n d  There is more than one LED, try to control some LEDs individually (either in the same color, or a color per LED)\n e  Also make the LEDs go completely off for a moment with the function clear();\n f  enough blinking, now we want control!: Make a sensor determine the brightness of the green (hint: map() ) The sensor gives 0-1024, the LED wants 0-255\n g  One color is a bit boring, make a code where one sensor chooses the color, and a second sensor sets the brightness. (hint: map R, G and B separately) (transitioning between 3 colors comes later, but is a bit more difficult)\n h  With the potentiometers this was simple. Try the same with a more difficult analog sensor, but make sure the lamp still goes fully on and off (temperature sensor or sound sensor for example) (again hint: map() and constrain())\n*/\n",
   "ports": {},
   "task": {
-   "title": "Exercise 2: Basiscode voor de Neopixel",
+   "title": "Exercise 2: NeoPixel LED strip",
    "list": [
     {
      "letter": "a",
@@ -735,12 +735,12 @@ const EAVP = [
   }
  },
  {
-  "group": "EAVP exercises (start code)",
-  "name": "3 Basiscode voor de servo",
+  "group": "Exercises (start code)",
+  "name": "Exercise 3: Servo motor",
   "code": "/*\n * Basic code to control the servo\n * This code makes the servo follow the value of the analog input\n */\n\n#include <Servo.h> // load library\n\n#define sensor A3 // define pins for the sensor and the servo\n#define servopin D9\nServo servomotor; // define a servo to control a servo called servomotor\n\nint value; // variable to read the value from the analog pin\n\nvoid setup(){\n  servomotor.attach(servopin); // attaches the servo on pin 9 and connects, without a known position!\n}\n\nvoid loop()\n{\n  value = analogRead(sensor);          // reads the value of the potentiometer (value between 0 and 1023)\n  value = map(value, 0, 1023, 0, 180); // scale it to use it with the servo (value between 0 and 180)\n  servomotor.write(value);             // sets the servo position to value\n  delay(15);                           // waits for the servo to get there\n}\n\n/************************************* EXERCISES: **************************************************************\n a  Check your sensor and/or servo so that it doesn't behave strangely when it is at its extreme position (For most of them this is no longer necessary)\n    What I mean by this: A servo sometimes has an internal physical limit that restricts the range to, for example, 10 - 160 degrees.\n    If you then send the servo to 0 or to 180, it will collide, strain a lot, get hot and break.\n    So you need to check what the range of your servo is, and make sure you never go outside that range.\n b  Invert the behavior of the servo (left must become right)\n c  At startup, make your servo first move fully to the left and fully to the right as a kind of waking up (don't forget the delay)\n d  There is a more advanced option to control servos, not with \"human readable\" 0-180° but in actual pulse width in microseconds.\n    Search the Arduino site in the servo documentation to see if you can find this (something with servo and microseconds).\n    This can help to get smoother movements since the range of 0 - 180 expands to 1000 - 2000\n    So 5 times as much resolution, but more abstract units and no longer ° of the angle.\n    For the neopixel I gave the possible functions for that component, but in practice you will mostly have to search online!: https://docs.arduino.cc/libraries/servo/\n */\n",
   "ports": {},
   "task": {
-   "title": "Exercise 3: Basiscode voor de servo",
+   "title": "Exercise 3: Servo motor",
    "list": [
     {
      "letter": "a",
@@ -762,12 +762,12 @@ const EAVP = [
   }
  },
  {
-  "group": "EAVP exercises (start code)",
-  "name": "4 Back to zero en digitaal",
+  "group": "Exercises (start code)",
+  "name": "Exercise 4: Back to zero & digital (I2C) sensors",
   "code": "void setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}\n\n\n/************************************* EXERCISES: **************************************************************\n a  And now it's completely up to you, briefly try to control both the LED and the servo in the same code with a few sensors\n    Make sure everything is calibrated and otherwise be creative. Don't spend too much time on this. Mainly figure out how to copy paste the previous examples together and combine them.\n\n b  We have now used a lot of analog sensors, and controlled things. The next step is digital sensors (I2C):\n    The Grove kit contains a few I2C sensors that we can only control with a library:\n    The digital temperature sensor is an AHT20: https://wiki.seeedstudio.com/Grove-AHT20-I2C-Industrial-Grade-Temperature&Humidity-Sensor/#upgradable-to-industrial-sensors\n      We prefer the library from Seeed: Seeed_Arduino_AHT20\n    The last one is the LCD RGB screen: https://wiki.seeedstudio.com/Grove-LCD_RGB_Backlight/\n      Here too the library from Seeed: Grove - LCD RGB Backlight\n    These were the 2 simple I2C sensors, then one more advanced, only for those who got through the rest of the exercises quickly:\n      The IMU sensor is a 9dof (an lcm20600 and AK09918): https://wiki.seeedstudio.com/Grove-IMU_9DOF-lcm20600+AK09918/\n        This one is harder to add (because there is a bug in their code), open this link and download the lib via the code>download button: https://github.com/AntwerpDesignFactory/Seeed_ICM20600_AK09918\n        Then in the library manager you can add .zip library\n\n c  And one more useful exercise on this:\n    - You now have 2 temperature sensors, an analog one and an I2C digital one. The digital one gives your exact temperature directly, the analog one a measurement on an unknown scale.\n      write a map so that the analog sensor also gives a correct measurement. Do this by comparing the measurements at 2 temperatures (inside and outside for example).\n    You will often need this skill in practice and in industry since most sensors are good, but don't give a calibrated measurement. Only after this calibration step can you use them meaningfully.\n */\n",
   "ports": {},
   "task": {
-   "title": "Exercise 4: Back to zero en digitaal",
+   "title": "Exercise 4: Back to zero & digital (I2C) sensors",
    "list": [
     {
      "letter": "a",
@@ -785,12 +785,12 @@ const EAVP = [
   }
  },
  {
-  "group": "EAVP exercises (start code)",
-  "name": "5 for if while serial",
+  "group": "Exercises (start code)",
+  "name": "Exercise 5: for, if, while & serial",
   "code": "void setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}\n\n/************************************* EXERCISES: **************************************************************\n    So far we have used almost only the analog functions of Arduino, from now on we try to transform this into digital functions:\n    for if while else switch break, ... Read up on what these functions do before you go through the exercises!: https://docs.arduino.cc/language-reference/#structure\n a  Write your first own function to control the LED with (hint, put in it the 3 lines of code that you otherwise keep repeating)\n b  Use an if(){}else{} to make your LED turn on and off. Start simple and make the LED do the same as the push button (pressed = on, and released = off). From now on we work digitally instead of analog and with boolean true and false\n c  A push button is handy, but even handier is if the lamp turns on after one tap, and turns back off after a 2nd tap (so you don't have to hold the button). Hint: the principle is called toggle and can be done by keeping track of a variable)\n d  Now make sure the button responds correctly, regardless of how long you have held the button down. (for this you add a while loop)\n e  Now try to make your LED fade in and out instead of turning on and off immediately. (make this a slow fade (hint: use a for loop or a counter))\n f  Add an extra bit to your fade code that stops the fade if the button (or another button) is pressed again. (with a break;)\n g  Make a lamp with four or so colors where you scroll through the colors by pressing the button (use a separate function for each mode to keep things clear!, and a variable to keep track of the current state/color).\nExtra:\n h  Use a Serial.read to make the current mode depend on what you send yourself via the Serial monitor.\n i  Do something with multiple buttons where something different happens when both are pressed than when only 1 button is pressed, or where a long press is different from a short press.\n*/\n",
   "ports": {},
   "task": {
-   "title": "Exercise 5: for if while serial",
+   "title": "Exercise 5: for, if, while & serial",
    "list": [
     {
      "letter": "a",
@@ -2884,7 +2884,7 @@ ALL_EX.forEach((ex, i) => {
 });
 $('exSel').onchange = e => {
   const ex = ALL_EX[e.target.value]; if (!ex) return;
-  stop(); setCode(ex.code); $('fname').textContent = ex.name.replace(/ /g, '_') + '.ino'; store.set('groveEmu.code', ex.code);
+  stop(); setCode(ex.code); $('fname').textContent = ex.name.replace(/[^\w-]+/g, '_').replace(/^_|_$/g, '') + '.ino'; store.set('groveEmu.code', ex.code);
   showTask(ex.task);
   // start from an empty shield and plug in only what this example needs (start code: nothing, the student wires it)
   setWiring(ex.ports || {});
