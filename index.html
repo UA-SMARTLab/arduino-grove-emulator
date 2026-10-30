@@ -140,6 +140,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .feat .e{font-size:24px}
 .feat p{margin:0;color:var(--muted);font-size:13.5px}
 .feat a{color:var(--accent);font-weight:600}
+.limits{margin:18px auto 0;max-width:760px;text-align:left;padding:12px 16px;border-radius:12px;border:1px solid #e0b252;background:#fff8e6;color:#4a3a12;font-size:14px}
+.limits ul{margin:6px 0;padding-left:20px}
+.limits li{margin:3px 0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .limits{background:#2e2611;border-color:#8a6a22;color:#f3e2b5}}
+:root[data-theme="dark"] .limits{background:#2e2611;border-color:#8a6a22;color:#f3e2b5}
 /* scene: every part starts hidden and moves in when #scene[data-step] reaches its step */
 #scene .part{transition:transform .9s cubic-bezier(.2,.9,.3,1.15),opacity .6s}
 #scene.reset .part,#scene.reset .cable{transition:none}
@@ -263,6 +268,16 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       </svg>
       <div class="steps" id="homeSteps"><span>1 · Arduino UNO R4</span><span>2 · Grove shield on top</span><span>3 · Plug in the sensors</span><span>4 · Upload your code and play!</span></div>
     </div>
+    <div class="limits" role="note">
+      <b>⚠️ This is a learning simulator, not a real Arduino</b>
+      <ul>
+        <li>Your code is compiled by a real C++ compiler, but it runs in your browser, not on the Arduino's chip. The board, the shield and every sensor and actuator are imitated in JavaScript.</li>
+        <li>Timing, memory limits and electrical behaviour (voltages, currents, noise, wiring mistakes) are not like on the real board, and sensor values are made up from the sliders.</li>
+        <li>Only the libraries of the kit are available.</li>
+        <li>In browsers other than Chrome or Edge, or without internet, a simpler simulator runs your code; it supports less of C++.</li>
+      </ul>
+      <b>Always test your project on the real kit.</b>
+    </div>
     <div class="home-cta">
       <button class="primary" id="homeStart">▶ Start the emulator</button>
       <button id="homeEx1">📝 Open Exercise 1</button>
@@ -270,12 +285,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="feats">
       <div class="feat"><span class="e">🎓</span><b>Exercises from the University of Antwerp</b>
         <p>The exercises come from the course
-          <a href="https://www.uantwerpen.be/nl/personeel/abdulhamid-baghdadi_29785/onderwijs/?id=2026-1047FOWPOW&amp;lang=nl&amp;source=personal" target="_blank" rel="noopener">Elektronische aspecten van producten</a>
+          <a href="https://www.uantwerpen.be/nl/studeren/aanbod/alle-opleidingen/productontwikkeling-studeren/master/schakelprogramma/studieprogramma/?id=2026-1047FOWPOW&amp;lang=nl" target="_blank" rel="noopener">Elektronische aspecten van producten</a>
           (Electronic Aspects of Products, EAVP) in Product Development at the University of Antwerp. Each one shows its tasks above the code.</p></div>
       <div class="feat"><span class="e">🔌</span><b>Plug in like the real kit</b>
         <p>Take parts from the tray and plug them into the ports of the Grove shield: buttons, sensors, LEDs, a servo, an LCD and an IMU.</p></div>
-      <div class="feat"><span class="e">⚙️</span><b>Real C++, real compiler</b>
-        <p>Your sketch is compiled like in the Arduino IDE. Errors are shown on the right line; working code runs as a real program.</p></div>
+      <div class="feat"><span class="e">⚙️</span><b>Real C++ compiler, simulated hardware</b>
+        <p>A real C++ compiler (clang) checks and compiles your sketch, so errors show up like in the Arduino IDE. The program then runs in your browser, not on an Arduino chip: the board, sensors and actuators around it are simulated in JavaScript.</p></div>
       <div class="feat"><span class="e">🚀</span><b>How to start</b>
         <p>Pick an exercise or example from the menu, plug in the parts it needs, and click <i>Upload &amp; run</i>. Use Chrome or Edge.</p></div>
     </div>
@@ -319,8 +334,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       Write your Arduino code just like in the Arduino IDE and click <b>Upload &amp; run</b>. For each module, choose which Grove shield port it is plugged into
       (just like with a real cable). Controls: hold buttons down, drag sliders, drag the joystick.<br>
       Supported libraries: <code>rgb_lcd.h</code>, <code>Servo.h</code>, <code>Adafruit_NeoPixel.h</code>, <code>AHT20.h</code>, <code>ICM20600.h</code> + <code>AK09918.h</code>, <code>DHT.h</code>, <code>LSM6DS3.h</code>, <code>LIS3DHTR.h</code>, <code>Wire.h</code>.<br>
-      Your sketch is compiled by a real C++ compiler (clang) and the compiled program runs here, like on a real board: code with errors is not uploaded,
-      and all of C++ works (pointers, <code>struct</code>/<code>class</code>, references, templates). The compiler downloads once (about 23&nbsp;MB).<br>
+      Your sketch is compiled by a real C++ compiler (clang): code with errors is not uploaded, and all of C++ works (pointers, <code>struct</code>/<code>class</code>,
+      references, templates). The compiled program runs in your browser; the board, sensors and actuators are simulated, so timing and electrical behaviour
+      are not exact. Always test on the real kit. The compiler downloads once (about 23&nbsp;MB).<br>
       Without internet, or in a browser that cannot run compiled programs (it needs a recent Chrome or Edge), a simpler simulator runs your code instead;
       it does not support all of C++.
     </div>
@@ -3034,7 +3050,32 @@ $('unplugBtn').onclick = () => setWiring({});
 $('mute').onchange = updateSound;
 $('strict').checked = store.get('groveEmu.strict') !== '0';
 $('strict').onchange = e => store.set('groveEmu.strict', e.target.checked ? '1' : '0');
-const ALL_EX = [...EXAMPLES.map(ex => ({ ...ex, group: 'Grove kit examples' })), ...EAVP];
+// The first thing a student sees: an empty sketch that lists the libraries this emulator has
+const NEW_SKETCH = `// New sketch for the Arduino UNO R4 + Grove kit
+//
+// Libraries available in this emulator: remove the // in front of the ones you need.
+// Other libraries are not available here.
+// #include <Wire.h>               // I2C bus (for the LCD, the AHT20 and the IMU)
+// #include <Servo.h>              // Servo motor
+// #include <Adafruit_NeoPixel.h>  // NeoPixel LED strip
+// #include "rgb_lcd.h"            // RGB LCD screen
+// #include "AHT20.h"              // Temperature & humidity sensor
+// #include "ICM20600.h"           // IMU: accelerometer and gyroscope
+// #include "AK09918.h"            // IMU: magnetometer (compass)
+// #include <math.h>               // Maths: sin, cos, sqrt, pow, ...
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+}
+`;
+const ALL_EX = [{ group: 'Start', name: '📄 New empty sketch', code: NEW_SKETCH, ports: {} },
+  ...EXAMPLES.map(ex => ({ ...ex, group: 'Grove kit examples' })), ...EAVP];
 const groups = {};
 ALL_EX.forEach((ex, i) => {
   if (!groups[ex.group]) { groups[ex.group] = document.createElement('optgroup'); groups[ex.group].label = ex.group; $('exSel').appendChild(groups[ex.group]); }
@@ -3170,7 +3211,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && !$('home').hidden) 
 
 buildModules(); updPorts();
 document.querySelectorAll('select').forEach(customSelect);
-setCode(store.get('groveEmu.code') || EXAMPLES[0].code);
+setCode(store.get('groveEmu.code') || NEW_SKETCH);
 try { const t = store.get('groveEmu.task'); if (t) showTask(JSON.parse(t)); } catch {}
 if (store.get('groveEmu.seenHome') !== '1') showHome(true);
 requestAnimationFrame(frame);

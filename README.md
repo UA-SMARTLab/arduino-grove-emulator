@@ -1,6 +1,6 @@
 # Grove Kit Emulator
 
-Program the Arduino UNO R4 + Grove kit at home, without the hardware. Made by the [SMART Lab](https://github.com/UA-SMARTLab), University of Antwerp, for the course [Elektronische aspecten van producten](https://www.uantwerpen.be/nl/personeel/abdulhamid-baghdadi_29785/onderwijs/?id=2026-1047FOWPOW&lang=nl&source=personal).
+Program the Arduino UNO R4 + Grove kit at home, without the hardware. Made by the [SMART Lab](https://github.com/UA-SMARTLab), University of Antwerp, for the course [Elektronische aspecten van producten](https://www.uantwerpen.be/nl/studeren/aanbod/alle-opleidingen/productontwikkeling-studeren/master/schakelprogramma/studieprogramma/?id=2026-1047FOWPOW&lang=nl).
 
 **Open it:** https://ua-smartlab.github.io/arduino-grove-emulator/ (works best in Chrome or Edge)
 
