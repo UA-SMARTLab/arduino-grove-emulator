@@ -2,6 +2,11 @@
 
 Program the Arduino UNO R4 + Grove kit at home, without the hardware. Made by the [SMART Lab](https://github.com/UA-SMARTLab), University of Antwerp, for the course [Elektronische aspecten van producten](https://www.uantwerpen.be/nl/studeren/aanbod/alle-opleidingen/productontwikkeling-studeren/master/schakelprogramma/studieprogramma/?id=2026-1047FOWPOW&lang=nl).
 
+<p align="center">
+  <img src="docs/readme/hero.gif" alt="The emulator in the browser: the Slide potentiometer → NeoPixels example is loaded, uploaded and played with, the slider lighting more or fewer LEDs of the strip, then the Potentiometer → servo example, the knob turning the servo while the serial monitor prints the angle" width="100%">
+</p>
+<p align="center"><sub>Two of the built-in <b>Examples</b>: pick one, the modules it needs are plugged in, <b>Upload &amp; run</b> compiles it with a real C++ compiler, and the parts on screen answer. The slide potentiometer lights the <b>NeoPixel strip</b>; the rotary knob turns the <b>servo</b> while the serial monitor prints its angle.</sub></p>
+
 **Open it:** https://ua-smartlab.github.io/arduino-grove-emulator/ (works best in Chrome or Edge)
 
 ## For students
